@@ -102,3 +102,8 @@ def test_state_machine():
     assert len(st.schedule) == 2
     assert st.apply(parse(S08_OFF)[0]) is True and st.power is False
     assert st.apply(parse(W08_ACK)[0]) is False
+
+
+def test_schedule_request_uses_slot_mask():
+    # verified 2026-11-15: R 06 1F returns all five slots
+    assert codec.read_request(codec.CMD_SCHEDULE, bytes([codec.ALL_SLOTS])) == H("a5aaac4b52061fc5ccca")

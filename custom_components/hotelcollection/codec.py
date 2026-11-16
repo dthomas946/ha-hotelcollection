@@ -54,8 +54,11 @@ def encode(ftype: int, cmd: int, payload: bytes = b"") -> bytes:
     return HEADER + bytes([checksum(body)]) + body + TRAILER
 
 
-def read_request(cmd: int) -> bytes:
-    return encode(TYPE_READ, cmd)
+ALL_SLOTS = 0x1F  # cmd 06 takes a slot bitmask: bit0 = slot 1 ... bit4 = slot 5
+
+
+def read_request(cmd: int, payload: bytes = b"") -> bytes:
+    return encode(TYPE_READ, cmd, payload)
 
 
 def write_request(cmd: int, value: int) -> bytes:
@@ -214,7 +217,7 @@ def _slot_from(b: bytes, has_enabled: bool) -> ScheduleSlot:
 
 
 def decode_schedule(payload: bytes) -> list[ScheduleSlot]:
-    """cmd 06: n x 11-byte slots (only active slots are listed)."""
+    """cmd 06: n x 11-byte slots, for the slots selected by the request's bitmask."""
     return [_slot_from(payload[i : i + 11], True) for i in range(0, len(payload) - 10, 11)]
 
 

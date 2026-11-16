@@ -46,7 +46,8 @@ If you use firewall groups/VLANs, allow Home Assistant → diffuser on TCP 8080.
 ## ⚠️ Don't port-scan with version detection
 
 `nmap -sV` against port 8080 sends junk that the diffuser accepts as commands —
-it flipped settings and cleared schedule slots during development. Plain port
+it flipped settings during development, and a burst of quick test connections
+later made it refuse local connections until it was power-cycled. Plain port
 scans are fine.
 
 ## Protocol

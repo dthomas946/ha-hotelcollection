@@ -12,6 +12,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .client import HotelCollectionClient, HotelCollectionError
 from .codec import (
+    ALL_SLOTS,
     CMD_CLOCK,
     CMD_FAN,
     CMD_LOCK,
@@ -26,7 +27,7 @@ from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-POLL_CMDS = (CMD_POWER, CMD_FAN, CMD_LOCK, CMD_OIL, CMD_SCHEDULE, CMD_CLOCK)
+POLL_CMDS = (CMD_POWER, CMD_FAN, CMD_LOCK, CMD_OIL, CMD_CLOCK)
 
 
 class HotelCollectionCoordinator(DataUpdateCoordinator[DeviceState]):
@@ -57,6 +58,8 @@ class HotelCollectionCoordinator(DataUpdateCoordinator[DeviceState]):
                 await self.client.read(CMD_NAME)
             for cmd in POLL_CMDS:
                 await self.client.read(cmd)
+            # without a slot mask the device returns an arbitrary subset of slots
+            await self.client.read(CMD_SCHEDULE, bytes([ALL_SLOTS]))
         except HotelCollectionError as err:
             await self.client.close()
             raise UpdateFailed(str(err)) from err

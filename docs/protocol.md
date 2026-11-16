@@ -31,10 +31,10 @@ On connect the device sends `R 02` (its clock).
 | 03 | `00`/`01` | Fan | ✔ |
 | 04 | 16-bit | Unknown | |
 | 05 | capacity16, remaining16, rate8 | Bottle mL, remaining mL, rate in 0.1 mL/h | ? |
-| 06 | n × 11-byte slots | Schedule (active slots only) | ? |
+| 06 | n × 11-byte slots | Schedule — request takes a 1-byte slot bitmask (`1F` = all 5); with no mask the reply is an arbitrary subset | ? |
 | 08 | `00`/`01` | Power | ✔ |
 | 09 | `00`/`01` | Child lock | ✔ |
-| 0A | 10-byte slot | One slot's detail | ? |
+| 0A | 10-byte slot | Always slot 5 in a 10-byte form; purpose unclear | ? |
 | 0B | 4 bytes | Unknown | |
 | 0C | clock + misc + oil + slot + flags | Status snapshot | |
 | 0D–1F | — | No reply | |

@@ -124,9 +124,9 @@ class HotelCollectionClient:
                     self._waiters.remove((ftype, cmd, fut))
                 raise HotelCollectionError(f"No reply to cmd {cmd:02X}: {err!r}") from err
 
-    async def read(self, cmd: int) -> Frame:
+    async def read(self, cmd: int, payload: bytes = b"") -> Frame:
         """Send a read request and return the matching R reply."""
-        return await self._exchange(read_request(cmd), TYPE_READ, cmd)
+        return await self._exchange(read_request(cmd, payload), TYPE_READ, cmd)
 
     async def write(self, cmd: int, value: int) -> None:
         """Send a one-byte write and wait for its ACK."""
