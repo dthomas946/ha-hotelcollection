@@ -1,0 +1,22 @@
+name: Release
+
+# Push a tag like v0.4.1 and GitHub creates the release HACS shows as the version.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check manifest version matches the tag
+        run: |
+          v=$(python3 -c "import json;print(json.load(open('custom_components/hotelcollection/manifest.json'))['version'])")
+          [ "v$v" = "${GITHUB_REF_NAME}" ] || { echo "manifest says $v but tag is ${GITHUB_REF_NAME}"; exit 1; }
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
