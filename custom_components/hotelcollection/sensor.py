@@ -18,7 +18,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from . import HotelCollectionConfigEntry
-from .codec import DeviceState, spray_hours_per_day
+from .codec import DeviceState, spray_hours_per_day, to_oz
 from .gate import STATUSES
 from .entity import HotelCollectionEntity
 
@@ -55,6 +55,22 @@ SENSORS = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:bottle-tonic-outline",
         value_fn=lambda s: s.oil.remaining_ml if s.oil else None,
+        attrs_fn=lambda s: {"fl_oz": to_oz(s.oil.remaining_ml)} if s.oil else {},
+    ),
+    HotelCollectionSensorDescription(
+        key="oil_to_fill",
+        translation_key="oil_to_fill",
+        native_unit_of_measurement=UnitOfVolume.MILLILITERS,
+        suggested_unit_of_measurement=UnitOfVolume.MILLILITERS,
+        device_class=SensorDeviceClass.VOLUME_STORAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:cart-arrow-down",
+        value_fn=lambda s: s.oil.to_fill_ml if s.oil else None,
+        attrs_fn=lambda s: {
+            "fl_oz": to_oz(s.oil.to_fill_ml),
+            "max_fill_ml": s.oil.max_fill_ml,
+            "max_fill_fl_oz": to_oz(s.oil.max_fill_ml),
+        } if s.oil else {},
     ),
     HotelCollectionSensorDescription(
         key="oil_level",
@@ -72,6 +88,7 @@ SENSORS = (
         device_class=SensorDeviceClass.VOLUME_STORAGE,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda s: s.oil.capacity_ml if s.oil else None,
+        attrs_fn=lambda s: {"fl_oz": to_oz(s.oil.capacity_ml)} if s.oil else {},
     ),
     HotelCollectionSensorDescription(
         key="consumption_rate",

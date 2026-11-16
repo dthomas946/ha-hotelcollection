@@ -13,6 +13,8 @@
  */
 
 const HC_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const HC_ML_PER_OZ = 29.5735;
+const hcOz = (ml) => (isNaN(ml) ? "–" : (ml / HC_ML_PER_OZ).toFixed(1));
 
 /* ------------------------------------------------------------ pure helpers */
 
@@ -341,7 +343,11 @@ class HotelCollectionCard extends HTMLElement {
     }).join("");
 
     const levelPct = isNaN(level) ? 0 : Math.max(0, Math.min(100, level));
-    const lowOil = !isNaN(level) && level < 15;
+    const lowOil = !isNaN(level) && level <= 10;
+    const remMl = parseFloat(remaining);
+    const capMl = parseFloat(bottle);
+    const maxFill = isNaN(capMl) ? NaN : Math.floor(capMl * 0.9);
+    const toFill = isNaN(maxFill) || isNaN(remMl) ? NaN : Math.max(0, maxFill - remMl);
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -374,10 +380,13 @@ class HotelCollectionCard extends HTMLElement {
         .now { position:absolute; top:0; bottom:0; width:2px; background: var(--error-color, #db4437); }
         .axis { display:flex; margin-left:40px; font-size:.7rem; color: var(--secondary-text-color); justify-content: space-between; margin-top:2px; }
         .oil { margin-top: 16px; display:grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items:center; cursor:pointer; }
-        .meter { height: 10px; border-radius: 5px; background: var(--secondary-background-color, rgba(127,127,127,.12)); overflow:hidden; }
+        .meter { position:relative; height: 10px; border-radius: 5px; background: var(--secondary-background-color, rgba(127,127,127,.12)); overflow:hidden; }
+        .tick { position:absolute; top:-1px; bottom:-1px; width:2px; }
+        .tick.max { background: var(--primary-text-color); opacity:.7; }
+        .tick.low { background: var(--error-color, #db4437); opacity:.7; }
         .fill { height:100%; background: ${lowOil ? "var(--error-color, #db4437)" : "var(--primary-color)"}; }
         .num { font-size:.9rem; }
-        .sub { grid-column: 1 / -1; font-size:.8rem; color: var(--secondary-text-color); }
+        .sub { grid-column: 1 / -1; font-size:.8rem; color: var(--secondary-text-color); line-height:1.4; }
         .warn { padding: 8px; color: var(--error-color); }
         .link { text-decoration: underline dotted; cursor: pointer; }
         .bar { cursor: pointer; }
@@ -425,9 +434,12 @@ class HotelCollectionCard extends HTMLElement {
         <div class="axis"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
         ${this._edit ? this._editorHtml() : this._listHtml(slots)}
         <div class="oil" id="oil">
-          <div class="meter"><div class="fill" style="width:${levelPct}%"></div></div>
+          <div class="meter"><div class="fill" style="width:${levelPct}%"></div>
+            <div class="tick low" style="left:10%" title="Low oil (10 %)"></div>
+            <div class="tick max" style="left:90%" title="Max fill (90 %)"></div></div>
           <div class="num">${isNaN(level) ? "–" : Math.round(level) + " %"}</div>
-          <div class="sub">${remaining ?? "–"} of ${bottle ?? "–"} mL${isNaN(daysLeft) ? "" : ` · about <b>${Math.round(daysLeft)} days</b> left on this schedule`} · ${isNaN(hours) ? "–" : Math.round(hours) + " h"} of spraying at <span class="link" id="rate">${rate ?? "–"} mL/h</span></div>
+          <div class="sub"><b>${remaining ?? "–"} mL</b> (${hcOz(remMl)} oz) in the bottle · bottle size ${bottle ?? "–"} mL (${hcOz(capMl)} oz)${isNaN(daysLeft) ? "" : ` · about <b>${Math.round(daysLeft)} days</b> left on this schedule`}</div>
+          <div class="sub">Fill to 90 %: ${isNaN(maxFill) ? "–" : maxFill} mL (${hcOz(maxFill)} oz) · <b>room for ${isNaN(toFill) ? "–" : Math.round(toFill)} mL (${hcOz(toFill)} oz)</b> · ${isNaN(hours) ? "–" : Math.round(hours) + " h"} of spraying at <span class="link" id="rate">${rate ?? "–"} mL/h</span></div>
         </div>
       </ha-card>`;
 

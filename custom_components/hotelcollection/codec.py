@@ -131,11 +131,29 @@ class FrameParser:
 # ---------------------------------------------------------------- decoders
 
 
+ML_PER_FL_OZ = 29.5735
+MAX_FILL = 0.9   # Villa manual: don't fill above 90 %
+LOW_OIL = 0.1    # low-oil light at 10 % or less
+
+
+def to_oz(ml: float | None) -> float | None:
+    return None if ml is None else round(ml / ML_PER_FL_OZ, 1)
+
+
 @dataclass
 class OilInfo:
     capacity_ml: int
     remaining_ml: int
     rate_ml_h: float
+
+    @property
+    def max_fill_ml(self) -> int:
+        return int(self.capacity_ml * MAX_FILL)
+
+    @property
+    def to_fill_ml(self) -> int:
+        """Oil that fits before the 90 % max-fill line."""
+        return max(0, self.max_fill_ml - self.remaining_ml)
 
     @property
     def percent(self) -> float:

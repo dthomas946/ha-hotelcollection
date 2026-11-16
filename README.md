@@ -30,6 +30,7 @@ Aroma360 2.0 models) likely speak the same protocol but are untested.
 | Consumption rate setting | number, mL/h | Edit to calibrate the gauge (0.1–25.5) |
 | Oil remaining setting | number, mL | Correct the level after measuring the bottle |
 | Bottle size setting | number, mL (config) | |
+| Oil to fill | sensor, mL | Room left below the 90 % max-fill line (fl oz in attributes) — how much to order |
 | Oil refilled | button | Sets oil remaining to the bottle size |
 | Active schedule slots | sensor | Full slot list (days, times, work/pause) in attributes |
 | Device clock | sensor (diagnostic, off by default) | |

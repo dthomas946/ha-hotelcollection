@@ -166,3 +166,10 @@ def test_manual_limits_are_enforced():
     for bad in ({"work_s": 4}, {"pause_s": 301}, {"start": "22:00", "end": "04:00"}, {"end": "22:00"}):
         with pytest.raises(ValueError):
             codec.encode_slot(codec.ScheduleSlot(**{**ok, **bad}))
+
+
+def test_fill_math_for_an_800_ml_bottle():
+    oil = codec.OilInfo(800, 468, 4.3)
+    assert oil.max_fill_ml == 720 and oil.to_fill_ml == 252
+    assert codec.to_oz(720) == 24.3 and codec.to_oz(252) == 8.5
+    assert codec.OilInfo(800, 750, 4.3).to_fill_ml == 0
