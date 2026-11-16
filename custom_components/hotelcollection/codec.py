@@ -221,8 +221,31 @@ def decode_schedule(payload: bytes) -> list[ScheduleSlot]:
     return [_slot_from(payload[i : i + 11], True) for i in range(0, len(payload) - 10, 11)]
 
 
+def encode_slot(slot: ScheduleSlot) -> bytes:
+    """11-byte slot as used by R/S/W 06. Write with W 06 + this payload."""
+    sh, sm = (int(x) for x in slot.start.split(":"))
+    eh, em = (int(x) for x in slot.end.split(":"))
+    for v, hi in ((sh, 23), (eh, 23), (sm, 59), (em, 59)):
+        if not 0 <= v <= hi:
+            raise ValueError(f"time out of range: {slot.start}-{slot.end}")
+    if not 1 <= slot.slot <= 5:
+        raise ValueError("mode must be 1-5")
+    if not (0 < slot.work_s <= 0xFFFF and 0 < slot.pause_s <= 0xFFFF):
+        raise ValueError("spray and pause must be 1-65535 seconds")
+    return bytes(
+        [slot.slot, slot.days_mask & 0x7F, sh, sm, eh, em, 1 if slot.enabled else 0]
+    ) + slot.work_s.to_bytes(2, "big") + slot.pause_s.to_bytes(2, "big")
+
+
+def days_to_mask(days) -> int:
+    mask = 0
+    for d in days:
+        mask |= 1 << DAY_NAMES.index(d[:3].title())
+    return mask
+
+
 def decode_slot(payload: bytes) -> ScheduleSlot | None:
-    """cmd 0A: one 10-byte slot (no enabled byte; days==0 means off)."""
+    """cmd 0A: the mode running now (or last run), 10 bytes, no enabled byte."""
     if len(payload) < 10:
         return None
     return _slot_from(payload, False)
@@ -262,6 +285,9 @@ class DeviceState:
         elif frame.cmd == CMD_OIL:
             self.oil = decode_oil(p) or self.oil
         elif frame.cmd == CMD_SCHEDULE:
-            self.schedule = decode_schedule(p)
+            # replies and pushes may carry only some slots: merge by slot number
+            merged = {s.slot: s for s in self.schedule}
+            merged.update({s.slot: s for s in decode_schedule(p)})
+            self.schedule = [merged[k] for k in sorted(merged)]
         after = (self.name, self.power, self.fan, self.lock, self.oil, self.schedule)
         return before != after

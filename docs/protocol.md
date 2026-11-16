@@ -31,10 +31,10 @@ On connect the device sends `R 02` (its clock).
 | 03 | `00`/`01` | Fan | ✔ |
 | 04 | 16-bit | Unknown | |
 | 05 | capacity16, remaining16, rate8 | Bottle mL, remaining mL, rate in 0.1 mL/h | ? |
-| 06 | n × 11-byte slots | Schedule — request takes a 1-byte slot bitmask (`1F` = all 5); with no mask the reply is an arbitrary subset | ? |
+| 06 | n × 11-byte slots | Schedule — read takes a 1-byte slot bitmask (`1F` = all 5; no mask = arbitrary subset). Write `W 06` + one 11-byte slot → `W 06 ACK`, then `S 06` echo and `S 0A` | ✔ |
 | 08 | `00`/`01` | Power | ✔ |
 | 09 | `00`/`01` | Child lock | ✔ |
-| 0A | 10-byte slot | Always slot 5 in a 10-byte form; purpose unclear | ? |
+| 0A | 10-byte slot | The mode running now (or last run), without the enabled byte; pushed after schedule writes | |
 | 0B | 4 bytes | Unknown | |
 | 0C | clock + misc + oil + slot + flags | Status snapshot | |
 | 0D–1F | — | No reply | |
@@ -56,6 +56,8 @@ means the slot is off.
 ```
 R 05  a5 aa ac 69 52 05 01 f4 01 e1 2b c5 cc ca     500 mL, 481 mL left, 4.3 mL/h
 W 08  a5 aa ac 5f 57 08 00 c5 cc ca                 power off
+W 06  a5 aa ac 34 57 06 05 60 14 00 17 1e 01 00 46 00 5a c5 cc ca
+                                                    mode 5: Sat+Sun 20:00-23:30, on, 70 s / 90 s
 ACK   a5 aa ac 16 57 08 41 43 4b c5 cc ca           W 08 "ACK"
 S 08  a5 aa ac 5b 53 08 00 c5 cc ca                 power is now off
 ```

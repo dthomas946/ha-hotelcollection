@@ -21,6 +21,9 @@ from .codec import (
     CMD_POWER,
     CMD_SCHEDULE,
     DeviceState,
+    ScheduleSlot,
+    days_to_mask,
+    encode_slot,
     Frame,
 )
 from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
@@ -76,6 +79,32 @@ class HotelCollectionCoordinator(DataUpdateCoordinator[DeviceState]):
             await self.client.read(cmd)
         except HotelCollectionError:
             pass
+        self.async_set_updated_data(self.state)
+
+    async def async_set_mode(self, mode: int, **changes) -> None:
+        """Change one schedule mode; fields not given keep their current value."""
+        current = next((s for s in self.state.schedule if s.slot == mode), None)
+        if current is None:
+            raise HomeAssistantError(f"Mode {mode} is unknown; schedule not loaded yet")
+        slot = ScheduleSlot(
+            slot=mode,
+            days_mask=days_to_mask(changes["days"]) if "days" in changes else current.days_mask,
+            start=changes.get("start", current.start),
+            end=changes.get("end", current.end),
+            enabled=changes.get("enabled", current.enabled),
+            work_s=int(changes.get("spray_seconds", current.work_s)),
+            pause_s=int(changes.get("pause_seconds", current.pause_s)),
+        )
+        try:
+            payload = encode_slot(slot)
+        except ValueError as err:
+            raise HomeAssistantError(str(err)) from err
+        try:
+            await self.client.write_payload(CMD_SCHEDULE, payload)
+            await self.client.read(CMD_SCHEDULE, bytes([ALL_SLOTS]))
+        except HotelCollectionError as err:
+            await self.client.close()
+            raise HomeAssistantError(f"Diffuser did not accept the schedule change: {err}") from err
         self.async_set_updated_data(self.state)
 
     async def async_shutdown(self) -> None:

@@ -107,3 +107,29 @@ def test_state_machine():
 def test_schedule_request_uses_slot_mask():
     # verified 2026-11-15: R 06 1F returns all five slots
     assert codec.read_request(codec.CMD_SCHEDULE, bytes([codec.ALL_SLOTS])) == H("a5aaac4b52061fc5ccca")
+
+
+def test_schedule_write_matches_frame_the_villa_accepted():
+    # 2026-11-16: this exact frame changed mode 5's end to 23:30 and was ACKed
+    slot = codec.ScheduleSlot(slot=5, days_mask=codec.days_to_mask(["Sat", "Sun"]), start="20:00",
+                              end="23:30", enabled=True, work_s=70, pause_s=90)
+    frame = codec.encode(codec.TYPE_WRITE, codec.CMD_SCHEDULE, codec.encode_slot(slot))
+    assert frame == H("a5aaac34570605601400171e010046005ac5ccca")
+
+
+def test_encode_slot_round_trips_and_validates():
+    for s in codec.decode_schedule(parse(R06_FIVE)[0].payload):
+        assert codec.decode_schedule(codec.encode_slot(s))[0] == s
+    import pytest
+    bad = codec.ScheduleSlot(slot=6, days_mask=1, start="01:00", end="02:00", enabled=True, work_s=1, pause_s=1)
+    with pytest.raises(ValueError):
+        codec.encode_slot(bad)
+
+
+def test_partial_schedule_push_is_merged():
+    st = codec.DeviceState()
+    st.apply(parse(R06_FIVE)[0])
+    echo = codec.encode(codec.TYPE_STATUS, codec.CMD_SCHEDULE, H("05601400171e010046005a"))
+    assert st.apply(parse(echo)[0]) is True
+    assert [s.slot for s in st.schedule] == [1, 2, 3, 4, 5]
+    assert st.schedule[4].end == "23:30" and st.schedule[0].start == "05:30"

@@ -30,7 +30,7 @@ Aroma360 2.0 models) likely speak the same protocol but are untested.
 
 ## Dashboard card
 
-The integration ships a read-only card and loads it automatically (no resource to add):
+The integration ships a card and loads it automatically (no resource to add):
 
 ```yaml
 type: custom:hotelcollection-card
@@ -40,7 +40,25 @@ name: Villa     # optional
 
 It shows the five modes on a weekly 24-hour timeline with a marker for now, which mode
 is running (or the next one), the scent, oil level and hours of spraying left, plus
-power and fan buttons. Schedule editing will come in a later version.
+power and fan buttons. Below the timeline each mode has an on/off switch; tap a mode
+(its bar or its row) to edit days, start and end time, spray seconds and pause seconds.
+
+## Action: `hotelcollection.set_mode`
+
+Change one schedule mode from automations or scripts. Fields you leave out keep their
+current value.
+
+```yaml
+action: hotelcollection.set_mode
+data:
+  mode: 5                 # 1-5
+  enabled: true
+  days: [Sat, Sun]
+  start: "20:00"
+  end: "23:59"
+  spray_seconds: 70
+  pause_seconds: 90
+```
 
 ![Card](docs/images/card.png)
 
@@ -58,6 +76,13 @@ If you use firewall groups/VLANs, allow Home Assistant → diffuser on TCP 8080.
 - Editing the schedule (read-only for now; edit it in the ScentArea app).
 - Changing the consumption rate or bottle size.
 - Unknown values: cmd `04`, cmd `0B`.
+
+## ⚠️ One local connection at a time
+
+The diffuser serves one local client. The ScentArea app in **AP mode** (and possibly
+when it reaches the diffuser directly on your Wi-Fi) takes that connection and
+Home Assistant is dropped until the app lets go. Keep the app in Wi-Fi mode and close it
+when you're done; if Home Assistant stays disconnected, unplug the diffuser for 10 seconds.
 
 ## ⚠️ Don't port-scan with version detection
 

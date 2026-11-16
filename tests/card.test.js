@@ -54,3 +54,11 @@ test("disabled modes are not active, but past-midnight windows carry over", () =
   assert.deepStrictEqual(card.hcBarsForDay(late, 5).map((b) => [b.startMin, b.endMin]), [[0, 120]]);
   assert.strictEqual(card.hcActiveMode(late, new Date(2026, 10, 21, 1, 0)).slot, 1); // Sat 01:00
 });
+
+test("day summaries", () => {
+  assert.strictEqual(card.hcDaySummary(WEEKDAYS), "Mon–Fri");
+  assert.strictEqual(card.hcDaySummary(WEEKEND), "Sat, Sun");
+  assert.strictEqual(card.hcDaySummary(["Mon", "Wed", "Fri"]), "Mon, Wed, Fri");
+  assert.strictEqual(card.hcDaySummary([...WEEKDAYS, ...WEEKEND]), "Every day");
+  assert.strictEqual(card.hcDaySummary([]), "No days");
+});

@@ -20,21 +20,83 @@
   },
   "entity": {
     "switch": {
-      "power": { "name": "Power" },
-      "fan": { "name": "Fan" },
-      "child_lock": { "name": "Child lock" }
+      "power": {
+        "name": "Power"
+      },
+      "fan": {
+        "name": "Fan"
+      },
+      "child_lock": {
+        "name": "Child lock"
+      }
     },
     "sensor": {
-      "oil_remaining": { "name": "Oil remaining" },
-      "oil_level": { "name": "Oil level" },
-      "oil_capacity": { "name": "Bottle size" },
-      "consumption_rate": { "name": "Consumption rate" },
-      "hours_remaining": { "name": "Run time remaining" },
-      "schedule": { "name": "Active schedule slots" },
-      "device_clock": { "name": "Device clock" }
+      "oil_remaining": {
+        "name": "Oil remaining"
+      },
+      "oil_level": {
+        "name": "Oil level"
+      },
+      "oil_capacity": {
+        "name": "Bottle size"
+      },
+      "consumption_rate": {
+        "name": "Consumption rate"
+      },
+      "hours_remaining": {
+        "name": "Run time remaining"
+      },
+      "schedule": {
+        "name": "Active schedule slots"
+      },
+      "device_clock": {
+        "name": "Device clock"
+      }
     },
     "text": {
-      "scent": { "name": "Scent" }
+      "scent": {
+        "name": "Scent"
+      }
+    }
+  },
+  "services": {
+    "set_mode": {
+      "name": "Set schedule mode",
+      "description": "Change one of the diffuser's five schedule modes. Fields you leave out keep their current value.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Diffuser",
+          "description": "Only needed when more than one diffuser is set up."
+        },
+        "mode": {
+          "name": "Mode",
+          "description": "Schedule mode number, 1-5."
+        },
+        "enabled": {
+          "name": "Enabled",
+          "description": "Turn the mode on or off."
+        },
+        "days": {
+          "name": "Days",
+          "description": "Days the mode runs."
+        },
+        "start": {
+          "name": "Start",
+          "description": "Start time."
+        },
+        "end": {
+          "name": "End",
+          "description": "End time (23:59 for end of day)."
+        },
+        "spray_seconds": {
+          "name": "Spray time",
+          "description": "Seconds of spraying per cycle."
+        },
+        "pause_seconds": {
+          "name": "Pause time",
+          "description": "Seconds of pause between sprays."
+        }
+      }
     }
   }
 }

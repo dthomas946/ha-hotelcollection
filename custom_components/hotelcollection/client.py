@@ -11,6 +11,7 @@ from .codec import (
     TYPE_WRITE,
     Frame,
     FrameParser,
+    encode,
     read_request,
     write_request,
 )
@@ -127,6 +128,10 @@ class HotelCollectionClient:
     async def read(self, cmd: int, payload: bytes = b"") -> Frame:
         """Send a read request and return the matching R reply."""
         return await self._exchange(read_request(cmd, payload), TYPE_READ, cmd)
+
+    async def write_payload(self, cmd: int, payload: bytes) -> None:
+        """Send a multi-byte write and wait for its ACK."""
+        await self._exchange(encode(TYPE_WRITE, cmd, payload), TYPE_WRITE, cmd)
 
     async def write(self, cmd: int, value: int) -> None:
         """Send a one-byte write and wait for its ACK."""

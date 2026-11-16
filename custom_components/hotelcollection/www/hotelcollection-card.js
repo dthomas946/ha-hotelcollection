@@ -6,6 +6,8 @@
  *
  * Shows the diffuser's five modes on a weekly 24 h timeline with a "now" marker,
  * which mode is running, oil level, run time left, scent, and power/fan toggles.
+ * Tap a mode (bar or list row) to edit its days, times, spray and pause seconds;
+ * saving calls the hotelcollection.set_mode action.
  * Created with Claude.ai. MIT licence. Layout idea from the schedule overview in
  * jrx-code/hassio-integration-aroma-link (MIT).
  */
@@ -54,6 +56,22 @@ function hcCarryOver(slots, day) {
     }
   }
   return out;
+}
+
+/** "Mon–Fri", "Sat–Sun", "Mon, Wed, Fri", "Every day", "No days" */
+function hcDaySummary(days) {
+  const idx = HC_DAYS.map((d, i) => ((days || []).includes(d) ? i : -1)).filter((i) => i >= 0);
+  if (!idx.length) return "No days";
+  if (idx.length === 7) return "Every day";
+  const runs = [];
+  for (const i of idx) {
+    const last = runs[runs.length - 1];
+    if (last && i === last[1] + 1) last[1] = i;
+    else runs.push([i, i]);
+  }
+  return runs
+    .map(([a, b]) => (a === b ? HC_DAYS[a] : b === a + 1 ? `${HC_DAYS[a]}, ${HC_DAYS[b]}` : `${HC_DAYS[a]}–${HC_DAYS[b]}`))
+    .join(", ");
 }
 
 /** The enabled mode covering `date`, or null. */
@@ -110,7 +128,7 @@ class HotelCollectionCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 6;
+    return 9;
   }
 
   getGridOptions() {
@@ -127,6 +145,7 @@ class HotelCollectionCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    if (this._edit) return; // keep the editor's inputs while it is open
     const ids = [
       ["switch", "power"], ["switch", "fan"], ["sensor", "oil_level"], ["sensor", "oil_remaining"],
       ["sensor", "bottle_size"], ["sensor", "run_time_remaining"], ["sensor", "consumption_rate"],
@@ -144,7 +163,7 @@ class HotelCollectionCard extends HTMLElement {
 
   connectedCallback() {
     // keep the "now" marker moving even when no state changes
-    this._timer = setInterval(() => { this._lastKey = null; if (this._hass) this.hass = this._hass; }, 60000);
+    this._timer = setInterval(() => { this._lastKey = null; if (this._hass && !this._edit) this.hass = this._hass; }, 60000);
   }
 
   disconnectedCallback() {
@@ -159,6 +178,96 @@ class HotelCollectionCard extends HTMLElement {
     const ev = new Event("hass-more-info", { bubbles: true, composed: true });
     ev.detail = { entityId: this._id(domain, suffix) };
     this.dispatchEvent(ev);
+  }
+
+  _slots() {
+    const sched = this._st("sensor", "active_schedule_slots");
+    return (sched && sched.attributes.slots) || [];
+  }
+
+  _openEditor(slotNo) {
+    const s = this._slots().find((x) => x.slot === slotNo);
+    if (!s) return;
+    this._edit = { slot: s.slot, days: [...(s.days || [])], start: s.start, end: s.end,
+                   enabled: !!s.enabled, work_s: s.work_s, pause_s: s.pause_s };
+    this._error = null;
+    this._render();
+  }
+
+  _closeEditor() {
+    this._edit = null;
+    this._error = null;
+    this._saving = false;
+    this._lastKey = null;
+    this._render();
+  }
+
+  async _callSetMode(data) {
+    const payload = { ...data };
+    if (this._config.config_entry_id) payload.config_entry_id = this._config.config_entry_id;
+    await this._hass.callService("hotelcollection", "set_mode", payload);
+  }
+
+  async _saveEditor() {
+    const e = this._edit;
+    if (!e || this._saving) return;
+    if (!e.days.length && e.enabled) { this._error = "Pick at least one day, or turn the mode off."; return this._render(); }
+    if (!(e.work_s >= 1 && e.work_s <= 3600 && e.pause_s >= 1 && e.pause_s <= 3600)) {
+      this._error = "Spray and pause must be 1–3600 seconds."; return this._render();
+    }
+    if (e.start === e.end) { this._error = "Start and end can't be the same time."; return this._render(); }
+    this._saving = true; this._error = null; this._render();
+    try {
+      await this._callSetMode({ mode: e.slot, enabled: e.enabled, days: e.days, start: e.start, end: e.end,
+                                spray_seconds: Number(e.work_s), pause_seconds: Number(e.pause_s) });
+      this._closeEditor();
+    } catch (err) {
+      this._saving = false;
+      this._error = (err && err.message) || "The diffuser did not accept the change.";
+      this._render();
+    }
+  }
+
+  async _quickToggle(slotNo, enabled) {
+    try { await this._callSetMode({ mode: slotNo, enabled }); }
+    catch (err) { this._error = (err && err.message) || "Could not change the mode."; this._lastKey = null; this._render(); }
+  }
+
+  _listHtml(slots) {
+    if (!slots.length) return "";
+    const rows = slots.map((s) => `
+      <div class="mrow ${s.enabled ? "" : "off"}" data-slot="${s.slot}">
+        <div class="mnum">${s.slot}</div>
+        <div class="mtxt"><div>${hcEsc(hcDaySummary(s.days))} · ${hcEsc(s.start)}–${hcEsc(s.end)}</div>
+          <div class="msub">${s.work_s} s spray · ${s.pause_s} s pause</div></div>
+        <label class="sw" title="${s.enabled ? "Turn mode off" : "Turn mode on"}">
+          <input type="checkbox" data-toggle="${s.slot}" ${s.enabled ? "checked" : ""}><span></span></label>
+        <button class="icon" data-edit="${s.slot}" title="Edit mode ${s.slot}"><ha-icon icon="mdi:pencil"></ha-icon></button>
+      </div>`).join("");
+    return `<div class="list"><div class="lhead">Modes</div>${rows}
+      ${this._error && !this._edit ? `<div class="err">${hcEsc(this._error)}</div>` : ""}</div>`;
+  }
+
+  _editorHtml() {
+    const e = this._edit;
+    const chips = HC_DAYS.map((d) => `<button class="chip ${e.days.includes(d) ? "sel" : ""}" data-day="${d}">${d}</button>`).join("");
+    return `
+      <div class="editor">
+        <div class="ehead"><span>Edit mode ${e.slot}</span>
+          <label class="sw" title="Mode on/off"><input type="checkbox" id="e-en" ${e.enabled ? "checked" : ""}><span></span></label></div>
+        <div class="chips">${chips}</div>
+        <div class="fields">
+          <label>Start<input type="time" id="e-start" value="${hcEsc(e.start)}"></label>
+          <label>End<input type="time" id="e-end" value="${hcEsc(e.end)}"></label>
+          <label>Spray (s)<input type="number" id="e-work" min="1" max="3600" value="${e.work_s}"></label>
+          <label>Pause (s)<input type="number" id="e-pause" min="1" max="3600" value="${e.pause_s}"></label>
+        </div>
+        ${this._error ? `<div class="err">${hcEsc(this._error)}</div>` : ""}
+        <div class="eact">
+          <button id="e-cancel" ${this._saving ? "disabled" : ""}>Cancel</button>
+          <button id="e-save" class="on" ${this._saving ? "disabled" : ""}>${this._saving ? "Saving…" : "Save"}</button>
+        </div>
+      </div>`;
   }
 
   _render() {
@@ -204,7 +313,7 @@ class HotelCollectionCard extends HTMLElement {
           const isActive = active && d === today && b.slot === active.slot && on;
           const cls = ["bar", b.enabled ? "" : "disabled", isActive ? "active" : ""].join(" ");
           const tip = `Mode ${b.slot}: ${b.start}–${b.end}, ${b.work_s} s on / ${b.pause_s} s off${b.enabled ? "" : " (off)"}`;
-          return `<div class="${cls}" style="left:${left}%;width:${width}%" title="${hcEsc(tip)}"><span>${b.slot}</span></div>`;
+          return `<div class="${cls}" data-bar="${b.slot}" style="left:${left}%;width:${width}%" title="${hcEsc(tip)} — tap to edit"><span>${b.slot}</span></div>`;
         })
         .join("");
       const marker = d === today ? `<div class="now" style="left:${(nowMin / 1440) * 100}%"></div>` : "";
@@ -250,6 +359,35 @@ class HotelCollectionCard extends HTMLElement {
         .num { font-size:.9rem; }
         .sub { grid-column: 1 / -1; font-size:.8rem; color: var(--secondary-text-color); }
         .warn { padding: 8px; color: var(--error-color); }
+        .bar { cursor: pointer; }
+        .list { margin-top: 14px; display:flex; flex-direction:column; gap:4px; }
+        .lhead, .ehead { font-size:.85rem; color: var(--secondary-text-color); margin-bottom:2px; display:flex; align-items:center; justify-content:space-between; }
+        .ehead span { color: var(--primary-text-color); font-weight:500; font-size:.95rem; }
+        .mrow { display:flex; align-items:center; gap:10px; padding:6px 4px; border-radius:8px; }
+        .mrow:hover { background: var(--secondary-background-color, rgba(127,127,127,.08)); }
+        .mrow.off .mtxt { opacity:.5; }
+        .mnum { width:22px; height:22px; border-radius:50%; background: var(--primary-color); color: var(--text-primary-color,#fff);
+                display:flex; align-items:center; justify-content:center; font-size:.75rem; flex:none; }
+        .mrow.off .mnum { background: var(--disabled-text-color, #9e9e9e); }
+        .mtxt { flex:1; font-size:.9rem; min-width:0; }
+        .msub { font-size:.75rem; color: var(--secondary-text-color); }
+        button.icon { border:none; padding:4px; border-radius:50%; }
+        .sw { position:relative; width:34px; height:20px; flex:none; display:inline-block; }
+        .sw input { opacity:0; width:0; height:0; }
+        .sw span { position:absolute; inset:0; border-radius:10px; background: var(--disabled-text-color,#9e9e9e); transition:.15s; cursor:pointer; }
+        .sw span::before { content:""; position:absolute; width:16px; height:16px; left:2px; top:2px; border-radius:50%; background:#fff; transition:.15s; }
+        .sw input:checked + span { background: var(--primary-color); }
+        .sw input:checked + span::before { transform: translateX(14px); }
+        .editor { margin-top:14px; padding:12px; border:1px solid var(--divider-color); border-radius:10px; display:flex; flex-direction:column; gap:12px; }
+        .chips { display:flex; gap:6px; flex-wrap:wrap; }
+        .chip { padding:4px 10px; border-radius:14px; }
+        .chip.sel { background: var(--primary-color); color: var(--text-primary-color,#fff); border-color: var(--primary-color); }
+        .fields { display:grid; grid-template-columns: repeat(auto-fit, minmax(110px,1fr)); gap:10px; }
+        .fields label { display:flex; flex-direction:column; gap:4px; font-size:.8rem; color: var(--secondary-text-color); }
+        .fields input { font: inherit; padding:6px 8px; border-radius:6px; border:1px solid var(--divider-color);
+                        background: var(--card-background-color, transparent); color: var(--primary-text-color); color-scheme: light dark; }
+        .eact { display:flex; justify-content:flex-end; gap:8px; }
+        .err { color: var(--error-color, #db4437); font-size:.85rem; }
       </style>
       <ha-card>
         <div class="head">
@@ -263,6 +401,7 @@ class HotelCollectionCard extends HTMLElement {
         <div class="status">${status}</div>
         <div class="grid">${rows}</div>
         <div class="axis"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+        ${this._edit ? this._editorHtml() : this._listHtml(slots)}
         <div class="oil" id="oil">
           <div class="meter"><div class="fill" style="width:${levelPct}%"></div></div>
           <div class="num">${isNaN(level) ? "–" : Math.round(level) + " %"}</div>
@@ -275,6 +414,26 @@ class HotelCollectionCard extends HTMLElement {
     $("fan")?.addEventListener("click", () => this._toggle("fan"));
     $("oil")?.addEventListener("click", () => this._more("sensor", "oil_remaining"));
     $("scent")?.addEventListener("click", () => this._more("text", "scent"));
+    const root = this.shadowRoot;
+    root.querySelectorAll("[data-bar]").forEach((el) => el.addEventListener("click", () => this._openEditor(Number(el.dataset.bar))));
+    root.querySelectorAll("[data-edit]").forEach((el) => el.addEventListener("click", () => this._openEditor(Number(el.dataset.edit))));
+    root.querySelectorAll("[data-toggle]").forEach((el) =>
+      el.addEventListener("change", () => this._quickToggle(Number(el.dataset.toggle), el.checked)));
+    if (this._edit) {
+      const e = this._edit;
+      root.querySelectorAll("[data-day]").forEach((el) => el.addEventListener("click", () => {
+        const d = el.dataset.day;
+        e.days = e.days.includes(d) ? e.days.filter((x) => x !== d) : HC_DAYS.filter((x) => x === d || e.days.includes(x));
+        el.classList.toggle("sel", e.days.includes(d));
+      }));
+      $("e-en")?.addEventListener("change", (ev) => { e.enabled = ev.target.checked; });
+      $("e-start")?.addEventListener("change", (ev) => { e.start = ev.target.value; });
+      $("e-end")?.addEventListener("change", (ev) => { e.end = ev.target.value; });
+      $("e-work")?.addEventListener("input", (ev) => { e.work_s = Number(ev.target.value); });
+      $("e-pause")?.addEventListener("input", (ev) => { e.pause_s = Number(ev.target.value); });
+      $("e-cancel")?.addEventListener("click", () => this._closeEditor());
+      $("e-save")?.addEventListener("click", () => this._saveEditor());
+    }
   }
 }
 
@@ -284,12 +443,12 @@ if (!customElements.get("hotelcollection-card")) {
   window.customCards.push({
     type: "hotelcollection-card",
     name: "Hotel Collection diffuser",
-    description: "Weekly schedule, current mode, oil level and power/fan for a Hotel Collection diffuser.",
+    description: "Weekly schedule (editable), current mode, oil level and power/fan for a Hotel Collection diffuser.",
     preview: false,
     documentationURL: "https://github.com/dthomas946/ha-hotelcollection",
   });
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { hcBarsForDay, hcActiveMode, hcNextMode, hcDayIndex, hcMinutes };
+  module.exports = { hcDaySummary, hcBarsForDay, hcActiveMode, hcNextMode, hcDayIndex, hcMinutes };
 }
