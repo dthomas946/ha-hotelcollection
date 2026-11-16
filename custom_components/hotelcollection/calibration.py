@@ -31,6 +31,7 @@ TICK = timedelta(seconds=60)
 MAX_GAP_S = 180  # a longer gap (HA down) is not counted as spraying
 RATE_MIN, RATE_MAX = 0.1, 25.5
 MIN_HOURS_TO_CALIBRATE = 5.0
+HISTORY_LEN = 12
 
 
 def calibrated_rate(level_at_refill_ml: float, measured_ml: float, run_hours: float) -> float:
@@ -75,6 +76,7 @@ class OilTracker:
         self.measured_ml: float | None = None
         self.added_ml: float = 500.0
         self.last_calibration: dict[str, Any] | None = None
+        self.history: list[dict[str, Any]] = []  # past calibrations, newest last
         self._last_tick: datetime | None = None
         self._unsub = None
         self._listeners: list = []
@@ -89,6 +91,12 @@ class OilTracker:
         self.measured_ml = data.get("measured_ml")
         self.added_ml = float(data.get("added_ml", 500.0))
         self.last_calibration = data.get("last_calibration")
+        self.history = list(data.get("history", []))
+        if not self.history and self.last_calibration:
+            # calibrated before the history existed (v0.6.x)
+            seed = dict(self.last_calibration)
+            seed.setdefault("level_at_refill_ml", self.level_at_refill_ml)
+            self.history = [seed]
 
     def _data(self) -> dict[str, Any]:
         return {
@@ -98,6 +106,7 @@ class OilTracker:
             "measured_ml": self.measured_ml,
             "added_ml": self.added_ml,
             "last_calibration": self.last_calibration,
+            "history": self.history,
         }
 
     def _save(self, now: bool = False) -> None:
@@ -213,11 +222,14 @@ class OilTracker:
         await self.coordinator.async_set_oil(remaining_ml=self.measured_ml, rate_ml_h=rate)
         self.last_calibration = {
             "at": dt_util.now().isoformat(),
+            "refilled_at": self.refill_at.isoformat(),
             "old_rate_ml_h": old,
             "new_rate_ml_h": rate,
+            "level_at_refill_ml": self.level_at_refill_ml,
             "measured_ml": self.measured_ml,
             "run_hours": round(self.run_hours, 1),
         }
+        self.history = [*self.history, self.last_calibration][-HISTORY_LEN:]
         _LOGGER.info("Oil rate calibrated: %s -> %s mL/h", old, rate)
         self._save(now=True)
         return rate

@@ -100,20 +100,25 @@ Check it: **Scent status** (`sensor.<name>_scent_status`) should read
 
 ## 5. Oil level and calibration
 
-The diffuser has **no oil sensor**. It works out the level as *last level
-entered − consumption rate × hours of spraying*, so the level is only as good as
-the rate. To tune the rate:
+The diffuser has **no oil sensor**. Oil remaining, days left and the low-oil
+warning are all *last level entered − consumption rate × hours of spraying*, so
+they are only as good as the rate. You train the rate over **two or three refills
+(a few months)**. Each refill-to-measurement period is one session:
 
-1. **When you refill**, set **Oil to add** to what you poured in and press
-   **Add oil**. That also restarts the *Spray time since refill* count. If you
-   forgot, the `hotelcollection.record_refill` action logs a refill after the
-   fact (level and time).
-2. **A week or more later**, read the real level and enter it in **Measured oil
-   level**. Bottles rarely have markings: weigh the bottle (essential oil is about
-   0.9 g per mL) or mark a measured fill line once. *Spray time since refill*
-   shows the rate this reading would give.
+1. **At the refill:** set **Oil to add** to what you poured in and press
+   **Add oil**. That also restarts the *Spray time since refill* count.
+2. **Days or weeks later** (the longer, the better): measure the real level and
+   enter it in **Measured oil level**. Weigh the bottle (about 0.9 g per mL, minus
+   the empty bottle's weight), or mark it once with measured pours; don't guess
+   by eye. *Spray time since refill* shows the rate this reading would give.
 3. Press **Calibrate rate**. The rate becomes *(level at refill − measured) ÷
    spraying hours*, and the oil level becomes your reading.
+
+The first session gives a rough rate; later sessions with larger drops refine it.
+Re-train whenever you change the oil or the spray/pause times. Past sessions are
+kept in the `calibration_history` attribute of *Spray time since refill*. The
+[README](../README.md#oil-calibration-training-the-oil-level) explains the method
+in full.
 
 ## 6. Dashboard
 

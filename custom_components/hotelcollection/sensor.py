@@ -234,4 +234,16 @@ class SprayTimeSinceRefillSensor(HotelCollectionEntity, SensorEntity):
             "last_calibrated_at": cal.get("at"),
             "last_calibration_old_rate": cal.get("old_rate_ml_h"),
             "last_calibration_new_rate": cal.get("new_rate_ml_h"),
+            "calibrations": len(t.history),
+            "calibration_history": [
+                {
+                    "date": h.get("at", "")[:10],
+                    "rate_ml_h": h.get("new_rate_ml_h"),
+                    "used_ml": round(h["level_at_refill_ml"] - h["measured_ml"], 1)
+                    if h.get("level_at_refill_ml") is not None and h.get("measured_ml") is not None
+                    else None,
+                    "spray_hours": h.get("run_hours"),
+                }
+                for h in t.history
+            ],
         }

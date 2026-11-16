@@ -68,22 +68,56 @@ Power switch, the ScentArea app or the button on the unit — turns Scent off, a
 HVAC pause leaves it off until you turn Scent back on. *Scent status* shows why the
 diffuser is or isn't spraying.
 
-## Oil calibration
+## Oil calibration: training the oil level
 
-The Villa never measures its oil. It takes the level you last gave it and subtracts
-*consumption rate × hours of spraying* (mode time × spray ÷ (spray + pause)), so
-the level is only as good as the rate. The integration counts the spraying hours
-since the last refill (power on, inside an enabled mode, weighted by that mode's
-spray share), so you can correct the rate:
+**Why it matters.** The Villa has no oil sensor. *Oil remaining*, *Oil days left*,
+the gauge and the low-oil warning are all worked out the same way: *the level
+you last gave it − consumption rate × hours of spraying*. Spraying hours are mode
+time × spray ÷ (spray + pause). So every oil number is only as good as the
+**consumption rate**, and the rate depends on your oil (thicker oils use less),
+your spray/pause settings, and the unit itself. The number on the box or in the
+app is only a starting point.
 
-1. When you refill, press **Add oil** (or call `hotelcollection.record_refill`
-   with the level and time, for a refill you forgot to log).
-2. Some days later, read the real level off the bottle and enter it in
-   **Measured oil level**. *Spray time since refill* shows the preview rate.
-3. Press **Calibrate rate**: the rate becomes
-   `(level at refill − measured) ÷ spraying hours`, and oil remaining becomes the
-   measured level. It needs at least 5 hours of spraying (about a week on the
-   current schedule is better); longer is more accurate.
+**Calibration is training, not a one-off.** Each refill-to-measurement period is
+one training session. It compares the oil actually used with the spraying hours
+the integration counted (power on, inside an enabled mode, weighted by that
+mode's spray share; time paused by the HVAC pause doesn't count), and it sets the
+rate that would have predicted the drop:
+
+> rate = (level at refill − measured level) ÷ spraying hours
+
+Plan on **two or three sessions over a couple of bottles (a few months)**:
+
+| Session | When | What you get |
+|---|---|---|
+| 1 | First refill → about a week or two later | A rough rate. Small drops are hard to measure, so expect it to move. |
+| 2 | Next refill → most of the bottle used | A good rate. A larger drop means a smaller relative error. |
+| 3+ | Each later refill, or whenever you change the oil or the spray/pause times | Confirms the rate, or re-trains it for the new oil or settings |
+
+Once two sessions in a row agree within about 0.2 mL/h, the rate is trained.
+*Spray time since refill* keeps the last 12 sessions in its
+`calibration_history` attribute, so you can compare them.
+
+**Each session:**
+
+1. **At the refill:** set **Oil to add** to what you pour in and press **Add oil**.
+   This sets *Level at last refill* and restarts the spraying-hours count. If you
+   know the exact level after filling, type it into **Level at last refill**
+   instead. (Forgot to log a refill? `hotelcollection.record_refill` takes a past
+   time and level.)
+2. **Days or weeks later** (the longer, the better; a nearly empty bottle is
+   best): measure the real level and enter it in **Measured oil level**.
+   *Spray time since refill* shows the rate you'd get before you commit.
+3. Press **Calibrate rate**. The rate and *Oil remaining* both update.
+
+**Measuring a bottle with no markings:**
+
+- Weigh it. Essential oil blends weigh about 0.9 g per mL, so
+  mL ≈ (weight − empty bottle weight) ÷ 0.9. Weigh the empty bottle once and
+  write the number down.
+- Or mark the bottle once: pour in a measured 100 mL at a time and mark each line.
+
+Avoid estimating by eye. A guess in either reading goes straight into the rate.
 
 ## Dashboard card
 
@@ -130,8 +164,13 @@ If you use firewall groups/VLANs, allow Home Assistant → diffuser on TCP 8080.
 
 ## Not yet supported
 
-- Editing the schedule (read-only for now; edit it in the ScentArea app).
-- Unknown value: cmd `0B`.
+- The diffuser's own *days of oil left* request (cmd `04`) always answers 0, so
+  the integration works out days left itself from the same formula. The
+  diffuser's own value still shows when it pushes one.
+- An unknown status value (cmd `0B`) is read but not used.
+- Changing the diffuser's Wi-Fi network from Home Assistant: use the ScentArea app.
+- The integration names entities after the device you set up, so several
+  diffusers work, but each needs its own card (`device:` prefix).
 
 ### How much you smell
 
@@ -149,9 +188,10 @@ long the modes run. From the ScentArea-family manual (DaVinci360 2.0):
 - When HVAC-connected, the **HVAC blower** must be running while the diffuser sprays, or
   the mist settles in the ductwork.
 
-The integration enforces the first two rules. The consumption rate only tells the diffuser how fast oil is used
-so it can estimate what's left. To calibrate it, note the oil level, let it run about
-10 days, measure the bottle, then adjust the rate until *Oil remaining* matches.
+The integration enforces the first two rules, and the HVAC pause handles the last one.
+The consumption rate doesn't change how much you smell. It only tells the diffuser
+how fast oil is used, so it can estimate what's left. See
+[Oil calibration](#oil-calibration-training-the-oil-level).
 
 ## If Home Assistant drops off
 
