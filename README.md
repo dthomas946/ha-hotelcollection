@@ -12,6 +12,10 @@ ScentArea app keeps working alongside it.
 Other white-label diffusers that use the ScentArea app (for example some
 Aroma360 2.0 models) likely speak the same protocol but are untested.
 
+> **Setting it up?** Follow **[docs/INSTALL.md](docs/INSTALL.md)**. It covers every
+> setting and where to change it, plus a ready-made dashboard page. To let an AI
+> assistant do the setup, give it **[docs/AI_SETUP.md](docs/AI_SETUP.md)**.
+
 ## What you get
 
 | Entity | Type | Notes |
@@ -36,6 +40,8 @@ Aroma360 2.0 models) likely speak the same protocol but are untested.
 | Spray time since refill | sensor | Hours the pump actually sprayed since the last refill |
 | Level at last refill / Measured oil level | number | Calibration inputs |
 | Calibrate rate | button | Sets the consumption rate (and oil remaining) from the measured level |
+| HVAC fan source | select | Entity that shows the HVAC blower is running (`none` = HVAC pause off); same as **Configure** |
+| HVAC start delay | number | Seconds of airflow before spraying; same as **Configure** |
 | Active schedule slots | sensor | Full slot list (days, times, work/pause) in attributes |
 | Device clock | sensor (diagnostic, off by default) | |
 | Scent | text | Kept in HA — the diffuser does not store the scent name |

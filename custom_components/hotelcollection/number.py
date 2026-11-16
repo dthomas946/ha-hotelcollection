@@ -12,6 +12,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import HotelCollectionConfigEntry
 from .codec import DeviceState
+from .const import CONF_START_DELAY, DEFAULT_START_DELAY
 from .entity import HotelCollectionEntity
 
 
@@ -73,6 +74,7 @@ async def async_setup_entry(
     async_add_entities(
         [HotelCollectionNumber(c, d) for d in NUMBERS]
         + [TrackerNumber(c, d) for d in TRACKER_NUMBERS]
+        + [HvacStartDelayNumber(c)]
     )
 
 
@@ -167,3 +169,33 @@ class TrackerNumber(HotelCollectionEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         self.entity_description.set_fn(self.coordinator.oil_tracker, value)
+
+
+class HvacStartDelayNumber(HotelCollectionEntity, NumberEntity):
+    """Seconds the HVAC fan must run before spraying starts (same as Configure)."""
+
+    _attr_translation_key = "hvac_start_delay"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_native_unit_of_measurement = "s"
+    _attr_native_min_value = 0
+    _attr_native_max_value = 300
+    _attr_native_step = 5
+    _attr_mode = NumberMode.BOX
+    _attr_icon = "mdi:timer-play-outline"
+
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator, "hvac_start_delay")
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def native_value(self) -> float:
+        return float(self.coordinator.config_entry.options.get(CONF_START_DELAY, DEFAULT_START_DELAY))
+
+    async def async_set_native_value(self, value: float) -> None:
+        entry = self.coordinator.config_entry
+        self.hass.config_entries.async_update_entry(
+            entry, options={**entry.options, CONF_START_DELAY: int(value)}
+        )

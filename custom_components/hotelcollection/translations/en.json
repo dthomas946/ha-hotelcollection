@@ -99,6 +99,9 @@
       },
       "measured_oil_level": {
         "name": "Measured oil level"
+      },
+      "hvac_start_delay": {
+        "name": "HVAC start delay"
       }
     },
     "button": {
@@ -107,6 +110,14 @@
       },
       "calibrate_rate": {
         "name": "Calibrate rate"
+      }
+    },
+    "select": {
+      "hvac_fan_source": {
+        "name": "HVAC fan source",
+        "state": {
+          "none": "None (HVAC pause off)"
+        }
       }
     }
   },
