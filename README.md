@@ -1,14 +1,14 @@
-# ScentArea Local
+# Hotel Collection for Home Assistant
 
-Local, cloud-free Home Assistant control of **ScentArea** Wi-Fi scent diffusers
-(sold as Hotel Collection Villa 2.0, Aroma360 Mini360 / VanGogh360 2.0 and other
-white-label units that pair with the *ScentArea* app).
+Local, cloud-free Home Assistant control of **Hotel Collection** scent diffusers —
+verified on the **Villa 2.0** — that pair with the *ScentArea* app.
 
 The diffuser keeps a plain TCP control port open on your network (**8080**).
-This integration talks to that port directly — no Alibaba cloud, no account,
-and the ScentArea app keeps working alongside it.
+This integration talks to that port directly: no cloud, no account, and the
+ScentArea app keeps working alongside it.
 
-Verified on: Hotel Collection Villa 2.0 (Bouffalo Lab Wi-Fi module), November 2026.
+Other white-label diffusers that use the ScentArea app (for example some
+Aroma360 2.0 models) likely speak the same protocol but are untested.
 
 ## What you get
 
@@ -29,15 +29,15 @@ Verified on: Hotel Collection Villa 2.0 (Bouffalo Lab Wi-Fi module), November 20
 ## Install
 
 1. Give the diffuser a fixed IP (DHCP reservation) in your router.
-2. HACS → ⋮ → **Custom repositories** → add `https://github.com/dthomas946/ha-scentarea-local`, category **Integration**.
-3. Download **ScentArea Local**, restart Home Assistant.
-4. Settings → Devices & services → **Add integration** → *ScentArea Local* → enter the IP.
+2. HACS → ⋮ → **Custom repositories** → add `https://github.com/dthomas946/ha-hotelcollection`, category **Integration**.
+3. Download **Hotel Collection**, restart Home Assistant.
+4. Settings → Devices & services → **Add integration** → *Hotel Collection* → enter the IP.
 
 If you use firewall groups/VLANs, allow Home Assistant → diffuser on TCP 8080.
 
 ## Not yet supported
 
-- Editing the schedule (read-only for now; edit it in the app).
+- Editing the schedule (read-only for now; edit it in the ScentArea app).
 - Changing the consumption rate or bottle size.
 - Unknown values: cmd `04`, cmd `0B`.
 
@@ -50,7 +50,7 @@ scans are fine.
 ## Protocol
 
 See [docs/protocol.md](docs/protocol.md). The codec is pure Python
-(`custom_components/scentarea_local/codec.py`) and tested against real captures
+(`custom_components/hotelcollection/codec.py`) and tested against real captures
 (`tests/test_codec.py`).
 
-Not affiliated with ScentArea, Hotel Collection or Aroma360.
+Not affiliated with Hotel Collection, ScentArea or Aroma360.

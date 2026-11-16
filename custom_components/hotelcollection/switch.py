@@ -10,23 +10,23 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import ScentAreaConfigEntry
+from . import HotelCollectionConfigEntry
 from .codec import CMD_FAN, CMD_LOCK, CMD_POWER
-from .entity import ScentAreaEntity
+from .entity import HotelCollectionEntity
 
 
 @dataclass(frozen=True, kw_only=True)
-class ScentAreaSwitchDescription(SwitchEntityDescription):
+class HotelCollectionSwitchDescription(SwitchEntityDescription):
     cmd: int
     attr: str
 
 
 SWITCHES = (
-    ScentAreaSwitchDescription(key="power", translation_key="power", cmd=CMD_POWER, attr="power"),
-    ScentAreaSwitchDescription(
+    HotelCollectionSwitchDescription(key="power", translation_key="power", cmd=CMD_POWER, attr="power"),
+    HotelCollectionSwitchDescription(
         key="fan", translation_key="fan", cmd=CMD_FAN, attr="fan", icon="mdi:fan"
     ),
-    ScentAreaSwitchDescription(
+    HotelCollectionSwitchDescription(
         key="child_lock",
         translation_key="child_lock",
         cmd=CMD_LOCK,
@@ -39,16 +39,16 @@ SWITCHES = (
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ScentAreaConfigEntry,
+    entry: HotelCollectionConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    async_add_entities(ScentAreaSwitch(entry.runtime_data, d) for d in SWITCHES)
+    async_add_entities(HotelCollectionSwitch(entry.runtime_data, d) for d in SWITCHES)
 
 
-class ScentAreaSwitch(ScentAreaEntity, SwitchEntity):
-    entity_description: ScentAreaSwitchDescription
+class HotelCollectionSwitch(HotelCollectionEntity, SwitchEntity):
+    entity_description: HotelCollectionSwitchDescription
 
-    def __init__(self, coordinator, description: ScentAreaSwitchDescription) -> None:
+    def __init__(self, coordinator, description: HotelCollectionSwitchDescription) -> None:
         super().__init__(coordinator, description.key)
         self.entity_description = description
 

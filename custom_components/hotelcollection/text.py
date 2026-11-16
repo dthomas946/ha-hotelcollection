@@ -7,19 +7,19 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from . import ScentAreaConfigEntry
-from .entity import ScentAreaEntity
+from . import HotelCollectionConfigEntry
+from .entity import HotelCollectionEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ScentAreaConfigEntry,
+    entry: HotelCollectionConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     async_add_entities([ScentNameText(entry.runtime_data)])
 
 
-class ScentNameText(ScentAreaEntity, TextEntity, RestoreEntity):
+class ScentNameText(HotelCollectionEntity, TextEntity, RestoreEntity):
     _attr_translation_key = "scent"
     _attr_icon = "mdi:scent"
     _attr_native_max = 64

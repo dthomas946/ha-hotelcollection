@@ -1,4 +1,4 @@
-# ScentArea local protocol (TCP 8080)
+# Hotel Collection local protocol (TCP 8080)
 
 Reverse-engineered November 2026 from a Hotel Collection Villa 2.0 by listening
 to the port while using the ScentArea app. Plain TCP, no encryption, no login.

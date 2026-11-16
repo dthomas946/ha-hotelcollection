@@ -7,7 +7,7 @@ import sys
 
 _spec = importlib.util.spec_from_file_location(
     "codec",
-    pathlib.Path(__file__).parents[1] / "custom_components" / "scentarea_local" / "codec.py",
+    pathlib.Path(__file__).parents[1] / "custom_components" / "hotelcollection" / "codec.py",
 )
 codec = importlib.util.module_from_spec(_spec)
 sys.modules["codec"] = codec

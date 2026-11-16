@@ -9,7 +9,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 
-from .client import ScentAreaClient, ScentAreaError
+from .client import HotelCollectionClient, HotelCollectionError
 from .codec import CMD_NAME, decode_name
 from .const import DEFAULT_PORT, DOMAIN
 
@@ -17,12 +17,12 @@ SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
         vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
-        vol.Optional(CONF_NAME, default="Villa diffuser"): str,
+        vol.Optional(CONF_NAME, default="Villa"): str,
     }
 )
 
 
-class ScentAreaConfigFlow(ConfigFlow, domain=DOMAIN):
+class HotelCollectionConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -31,11 +31,11 @@ class ScentAreaConfigFlow(ConfigFlow, domain=DOMAIN):
             host = user_input[CONF_HOST].strip()
             await self.async_set_unique_id(host)
             self._abort_if_unique_id_configured()
-            client = ScentAreaClient(host, user_input[CONF_PORT])
+            client = HotelCollectionClient(host, user_input[CONF_PORT])
             try:
                 frame = await client.read(CMD_NAME)
                 device_name = decode_name(frame.payload)
-            except ScentAreaError:
+            except HotelCollectionError:
                 errors["base"] = "cannot_connect"
             else:
                 return self.async_create_entry(

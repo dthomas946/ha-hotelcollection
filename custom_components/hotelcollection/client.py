@@ -21,11 +21,11 @@ CONNECT_TIMEOUT = 5
 REPLY_TIMEOUT = 3
 
 
-class ScentAreaError(Exception):
+class HotelCollectionError(Exception):
     """Communication failure."""
 
 
-class ScentAreaClient:
+class HotelCollectionClient:
     """Keeps one persistent connection, dispatches every frame to a callback,
     and lets callers await specific replies."""
 
@@ -52,7 +52,7 @@ class ScentAreaClient:
                 asyncio.open_connection(self.host, self.port), CONNECT_TIMEOUT
             )
         except (OSError, asyncio.TimeoutError) as err:
-            raise ScentAreaError(f"Cannot connect to {self.host}:{self.port}: {err}") from err
+            raise HotelCollectionError(f"Cannot connect to {self.host}:{self.port}: {err}") from err
         self._parser = FrameParser()
         self._task = asyncio.get_running_loop().create_task(self._read_loop())
         _LOGGER.debug("Connected to %s:%s", self.host, self.port)
@@ -68,7 +68,7 @@ class ScentAreaClient:
             except OSError:
                 pass
         self._writer = self._reader = None
-        self._fail_waiters(ScentAreaError("Connection closed"))
+        self._fail_waiters(HotelCollectionError("Connection closed"))
 
     async def _read_loop(self) -> None:
         assert self._reader is not None
@@ -93,7 +93,7 @@ class ScentAreaClient:
         if self._writer:
             self._writer.close()
         self._writer = self._reader = None
-        self._fail_waiters(ScentAreaError("Connection lost"))
+        self._fail_waiters(HotelCollectionError("Connection lost"))
 
     def _resolve_waiters(self, frame: Frame) -> None:
         for item in list(self._waiters):
@@ -122,7 +122,7 @@ class ScentAreaClient:
             except (OSError, asyncio.TimeoutError) as err:
                 if (ftype, cmd, fut) in self._waiters:
                     self._waiters.remove((ftype, cmd, fut))
-                raise ScentAreaError(f"No reply to cmd {cmd:02X}: {err!r}") from err
+                raise HotelCollectionError(f"No reply to cmd {cmd:02X}: {err!r}") from err
 
     async def read(self, cmd: int) -> Frame:
         """Send a read request and return the matching R reply."""

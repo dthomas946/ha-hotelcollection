@@ -7,13 +7,13 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER
-from .coordinator import ScentAreaCoordinator
+from .coordinator import HotelCollectionCoordinator
 
 
-class ScentAreaEntity(CoordinatorEntity[ScentAreaCoordinator]):
+class HotelCollectionEntity(CoordinatorEntity[HotelCollectionCoordinator]):
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: ScentAreaCoordinator, key: str) -> None:
+    def __init__(self, coordinator: HotelCollectionCoordinator, key: str) -> None:
         super().__init__(coordinator)
         entry = coordinator.config_entry
         self._attr_unique_id = f"{entry.unique_id}_{key}"
@@ -21,7 +21,7 @@ class ScentAreaEntity(CoordinatorEntity[ScentAreaCoordinator]):
             identifiers={(DOMAIN, entry.unique_id)},
             name=entry.title,
             manufacturer=MANUFACTURER,
-            model=entry.data.get("device_name") or "ScentArea diffuser",
+            model="Villa",
             configuration_url=None,
         )
         self._host = entry.data[CONF_HOST]

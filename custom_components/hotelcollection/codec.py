@@ -1,4 +1,4 @@
-"""Frame codec for ScentArea Wi-Fi scent diffusers (local TCP port 8080).
+"""Frame codec for Hotel Collection diffusers that use the ScentArea app (local TCP port 8080).
 
 Pure Python, no Home Assistant imports, so it can be unit-tested or reused
 from AppDaemon / Node-RED scripts.

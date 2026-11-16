@@ -17,9 +17,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from . import ScentAreaConfigEntry
+from . import HotelCollectionConfigEntry
 from .codec import DeviceState
-from .entity import ScentAreaEntity
+from .entity import HotelCollectionEntity
 
 
 def _hours_left(s: DeviceState) -> float | None:
@@ -39,13 +39,13 @@ def _clock(s: DeviceState):
 
 
 @dataclass(frozen=True, kw_only=True)
-class ScentAreaSensorDescription(SensorEntityDescription):
+class HotelCollectionSensorDescription(SensorEntityDescription):
     value_fn: Callable[[DeviceState], Any]
     attrs_fn: Callable[[DeviceState], dict[str, Any]] | None = None
 
 
 SENSORS = (
-    ScentAreaSensorDescription(
+    HotelCollectionSensorDescription(
         key="oil_remaining",
         translation_key="oil_remaining",
         native_unit_of_measurement=UnitOfVolume.MILLILITERS,
@@ -55,7 +55,7 @@ SENSORS = (
         icon="mdi:bottle-tonic-outline",
         value_fn=lambda s: s.oil.remaining_ml if s.oil else None,
     ),
-    ScentAreaSensorDescription(
+    HotelCollectionSensorDescription(
         key="oil_level",
         translation_key="oil_level",
         native_unit_of_measurement=PERCENTAGE,
@@ -63,7 +63,7 @@ SENSORS = (
         icon="mdi:water-percent",
         value_fn=lambda s: s.oil.percent if s.oil else None,
     ),
-    ScentAreaSensorDescription(
+    HotelCollectionSensorDescription(
         key="oil_capacity",
         translation_key="oil_capacity",
         native_unit_of_measurement=UnitOfVolume.MILLILITERS,
@@ -72,7 +72,7 @@ SENSORS = (
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda s: s.oil.capacity_ml if s.oil else None,
     ),
-    ScentAreaSensorDescription(
+    HotelCollectionSensorDescription(
         key="consumption_rate",
         translation_key="consumption_rate",
         native_unit_of_measurement="mL/h",
@@ -80,7 +80,7 @@ SENSORS = (
         icon="mdi:speedometer",
         value_fn=lambda s: s.oil.rate_ml_h if s.oil else None,
     ),
-    ScentAreaSensorDescription(
+    HotelCollectionSensorDescription(
         key="hours_remaining",
         translation_key="hours_remaining",
         native_unit_of_measurement=UnitOfTime.HOURS,
@@ -89,14 +89,14 @@ SENSORS = (
         icon="mdi:timer-sand",
         value_fn=_hours_left,
     ),
-    ScentAreaSensorDescription(
+    HotelCollectionSensorDescription(
         key="schedule",
         translation_key="schedule",
         icon="mdi:calendar-clock",
         value_fn=_active_slots,
         attrs_fn=lambda s: {"slots": [slot.as_dict() for slot in s.schedule]},
     ),
-    ScentAreaSensorDescription(
+    HotelCollectionSensorDescription(
         key="device_clock",
         translation_key="device_clock",
         device_class=SensorDeviceClass.TIMESTAMP,
@@ -109,16 +109,16 @@ SENSORS = (
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ScentAreaConfigEntry,
+    entry: HotelCollectionConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    async_add_entities(ScentAreaSensor(entry.runtime_data, d) for d in SENSORS)
+    async_add_entities(HotelCollectionSensor(entry.runtime_data, d) for d in SENSORS)
 
 
-class ScentAreaSensor(ScentAreaEntity, SensorEntity):
-    entity_description: ScentAreaSensorDescription
+class HotelCollectionSensor(HotelCollectionEntity, SensorEntity):
+    entity_description: HotelCollectionSensorDescription
 
-    def __init__(self, coordinator, description: ScentAreaSensorDescription) -> None:
+    def __init__(self, coordinator, description: HotelCollectionSensorDescription) -> None:
         super().__init__(coordinator, description.key)
         self.entity_description = description
 

@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "ScentArea diffuser",
+        "title": "Hotel Collection diffuser",
         "description": "Enter the diffuser's IP address on your network. Give it a fixed (reserved) IP in your router first.",
         "data": {
           "host": "IP address",
