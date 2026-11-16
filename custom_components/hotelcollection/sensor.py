@@ -19,6 +19,7 @@ from homeassistant.util import dt as dt_util
 
 from . import HotelCollectionConfigEntry
 from .codec import DeviceState, spray_hours_per_day
+from .gate import STATUSES
 from .entity import HotelCollectionEntity
 
 
@@ -125,7 +126,9 @@ async def async_setup_entry(
     entry: HotelCollectionConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    async_add_entities(HotelCollectionSensor(entry.runtime_data, d) for d in SENSORS)
+    entities = [HotelCollectionSensor(entry.runtime_data, d) for d in SENSORS]
+    entities.append(ScentStatusSensor(entry.runtime_data))
+    async_add_entities(entities)
 
 
 class HotelCollectionSensor(HotelCollectionEntity, SensorEntity):
@@ -144,3 +147,29 @@ class HotelCollectionSensor(HotelCollectionEntity, SensorEntity):
         if self.entity_description.attrs_fn:
             return self.entity_description.attrs_fn(self.coordinator.data)
         return None
+
+
+
+class ScentStatusSensor(HotelCollectionEntity, SensorEntity):
+    """Why the diffuser is or isn't spraying right now."""
+
+    _attr_translation_key = "scent_status"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = STATUSES
+    _attr_icon = "mdi:scent"
+
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator, "scent_status")
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.coordinator.gate.add_listener(self.async_write_ha_state)
+
+    @property
+    def native_value(self) -> str:
+        return self.coordinator.gate.status
+
+    @property
+    def extra_state_attributes(self):
+        gate = self.coordinator.gate
+        return {"hvac_fan_entity": gate.fan_entity, "hvac_fan_running": gate.fan_on if gate.active else None}

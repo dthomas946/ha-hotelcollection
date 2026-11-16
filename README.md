@@ -16,7 +16,9 @@ Aroma360 2.0 models) likely speak the same protocol but are untested.
 
 | Entity | Type | Notes |
 |---|---|---|
-| Power | switch | Instant; changes made in the app show up immediately |
+| Scent | switch | Your on/off; with the HVAC pause, the integration runs the pump while this is on |
+| Scent status | sensor | Spraying · Starting · Paused: HVAC fan off · Outside schedule · Off |
+| Power | switch | The pump itself. Instant; changes made in the app show up immediately |
 | Fan | switch | |
 | Child lock | switch (config) | |
 | Oil remaining | sensor, mL | From the device |
@@ -32,6 +34,28 @@ Aroma360 2.0 models) likely speak the same protocol but are untested.
 | Active schedule slots | sensor | Full slot list (days, times, work/pause) in attributes |
 | Device clock | sensor (diagnostic, off by default) | |
 | Scent | text | Kept in HA — the diffuser does not store the scent name |
+
+## HVAC pause (for diffusers that feed a duct)
+
+When the diffuser is connected to your HVAC ductwork, mist only reaches the house
+while the HVAC blower moves air; otherwise it settles in the ducts. Turn on the HVAC
+pause in **Settings → Devices & services → Hotel Collection → Configure** and pick the
+entity that shows the fan is running — a thermostat (`hvac_action` heating / cooling /
+fan, or `fan_action: on`), a blower sensor (> 0) or a switch/binary sensor.
+
+The diffuser then runs only when all three are true:
+
+| HVAC fan running | A mode scheduled now | **Scent** switch on | → Diffuser |
+|---|---|---|---|
+| yes | yes | yes | on (after a start delay, default 20 s) |
+| no | | | off, straight away |
+| | no | | off |
+| | | no | off |
+
+**You stay in control:** turning the diffuser off anywhere — the Scent switch, the
+Power switch, the ScentArea app or the button on the unit — turns Scent off, and the
+HVAC pause leaves it off until you turn Scent back on. *Scent status* shows why the
+diffuser is or isn't spraying.
 
 ## Dashboard card
 

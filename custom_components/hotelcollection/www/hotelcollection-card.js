@@ -150,6 +150,7 @@ class HotelCollectionCard extends HTMLElement {
       ["switch", "power"], ["switch", "fan"], ["sensor", "oil_level"], ["sensor", "oil_remaining"],
       ["sensor", "bottle_size"], ["sensor", "run_time_remaining"], ["sensor", "consumption_rate"],
       ["sensor", "active_schedule_slots"], ["text", "scent"], ["sensor", "oil_days_left"],
+      ["switch", "scent"], ["sensor", "scent_status"],
     ];
     const minute = Math.floor(Date.now() / 60000);
     const key = minute + "|" + ids.map(([d, s]) => {
@@ -285,7 +286,11 @@ class HotelCollectionCard extends HTMLElement {
     const slots = (sched && sched.attributes.slots) || [];
     const power = this._st("switch", "power");
     const fan = this._st("switch", "fan");
-    const on = power && power.state === "on";
+    const scentSw = this._st("switch", "scent");
+    const gate = this._st("sensor", "scent_status");
+    const gated = !!(gate && gate.attributes.hvac_fan_entity);
+    const pumpOn = power && power.state === "on";
+    const on = scentSw ? scentSw.state === "on" : pumpOn;
     const fanOn = fan && fan.state === "on";
     const level = parseFloat(this._st("sensor", "oil_level")?.state);
     const remaining = this._st("sensor", "oil_remaining")?.state;
@@ -302,13 +307,22 @@ class HotelCollectionCard extends HTMLElement {
     const active = hcActiveMode(slots, now);
     const next = hcNextMode(slots, now);
 
+    const nextTxt = next
+      ? `next Mode ${next.slot.slot} ${next.offset === 0 ? "today" : next.offset === 1 ? "tomorrow" : HC_DAYS[next.day]} ${hcEsc(next.start)}`
+      : "no modes enabled";
     let status;
     if (unavailable) status = `<span class="dot off"></span>Diffuser offline`;
-    else if (!on) status = `<span class="dot off"></span>Off`;
+    else if (!on) status = `<span class="dot off"></span>Off${gated ? " — HVAC pause won't turn it on until you do" : ""}`;
+    else if (gated && gate.state === "waiting_for_hvac")
+      status = `<span class="dot idle"></span>Paused · HVAC fan is off${active ? ` (Mode ${active.slot} scheduled)` : ""}`;
+    else if (gated && gate.state === "starting")
+      status = `<span class="dot idle"></span>Starting · waiting for airflow in the ducts`;
+    else if (gated && gate.state === "outside_schedule")
+      status = `<span class="dot idle"></span>Idle · ${nextTxt}`;
     else if (active)
       status = `<span class="dot run"></span>Mode ${active.slot} running · ${hcEsc(active.start)}–${hcEsc(active.end)} · ${active.work_s} s on / ${active.pause_s} s off`;
-    else if (next)
-      status = `<span class="dot idle"></span>Idle · next Mode ${next.slot.slot} ${next.offset === 0 ? "today" : next.offset === 1 ? "tomorrow" : HC_DAYS[next.day]} ${hcEsc(next.start)}`;
+    else if (gated && !pumpOn) status = `<span class="dot idle"></span>Idle · ${nextTxt}`;
+    else if (next) status = `<span class="dot idle"></span>Idle · ${nextTxt}`;
     else status = `<span class="dot idle"></span>No modes enabled`;
 
     const rows = HC_DAYS.map((label, d) => {
@@ -316,7 +330,7 @@ class HotelCollectionCard extends HTMLElement {
         .map((b) => {
           const left = (b.startMin / 1440) * 100;
           const width = ((b.endMin - b.startMin) / 1440) * 100;
-          const isActive = active && d === today && b.slot === active.slot && on;
+          const isActive = active && d === today && b.slot === active.slot && on && pumpOn;
           const cls = ["bar", b.enabled ? "" : "disabled", isActive ? "active" : ""].join(" ");
           const tip = `Mode ${b.slot}: ${b.start}–${b.end}, ${b.work_s} s on / ${b.pause_s} s off${b.enabled ? "" : " (off)"}`;
           return `<div class="${cls}" data-bar="${b.slot}" style="left:${left}%;width:${width}%" title="${hcEsc(tip)} — tap to edit"><span>${b.slot}</span></div>`;
@@ -402,7 +416,7 @@ class HotelCollectionCard extends HTMLElement {
           <div class="title">${hcEsc(this._config.name || "Villa")}
             ${scent && scent !== "unknown" ? `<div class="scent" id="scent">${hcEsc(scent)}</div>` : ""}</div>
           <div class="btns">
-            <button id="power" class="${on ? "on" : ""}" ${unavailable ? "disabled" : ""} title="Power"><ha-icon icon="mdi:power"></ha-icon>${on ? "On" : "Off"}</button>
+            <button id="power" class="${on ? "on" : ""}" ${unavailable ? "disabled" : ""} title="${scentSw ? "Scent on/off (the HVAC pause follows this)" : "Power"}"><ha-icon icon="mdi:power"></ha-icon>${on ? "On" : "Off"}</button>
             <button id="fan" class="${fanOn ? "on" : ""}" ${unavailable ? "disabled" : ""} title="Fan"><ha-icon icon="mdi:fan"></ha-icon>Fan</button>
           </div>
         </div>
@@ -418,7 +432,7 @@ class HotelCollectionCard extends HTMLElement {
       </ha-card>`;
 
     const $ = (id) => this.shadowRoot.getElementById(id);
-    $("power")?.addEventListener("click", () => this._toggle("power"));
+    $("power")?.addEventListener("click", () => this._toggle(scentSw ? "scent" : "power"));
     $("fan")?.addEventListener("click", () => this._toggle("fan"));
     $("oil")?.addEventListener("click", () => this._more("number", "oil_remaining_setting"));
     $("rate")?.addEventListener("click", (ev) => { ev.stopPropagation(); this._more("number", "consumption_rate_setting"); });

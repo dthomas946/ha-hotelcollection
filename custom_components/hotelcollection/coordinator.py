@@ -49,11 +49,20 @@ class HotelCollectionCoordinator(DataUpdateCoordinator[DeviceState]):
         )
         self.state = DeviceState()
         self.client = HotelCollectionClient(host, port, self._handle_frame)
+        self.gate = None  # set by async_setup_entry (gate.ScentGate)
 
     @callback
     def _handle_frame(self, frame: Frame) -> None:
-        """Push path: status changes made from the app, buttons or HA."""
-        if self.state.apply(frame) and self.data is not None:
+        """Every frame (replies and pushes): update state, tell the HVAC pause."""
+        old_power = self.state.power
+        old_schedule = list(self.state.schedule)
+        changed = self.state.apply(frame)
+        if self.gate is not None:
+            if old_power is not None and self.state.power is not None and self.state.power != old_power:
+                self.gate.on_power_changed(self.state.power)
+            elif self.state.schedule != old_schedule:
+                self.hass.async_create_task(self.gate.evaluate())
+        if changed and self.data is not None:
             self.async_set_updated_data(self.state)
 
     async def _async_update_data(self) -> DeviceState:
@@ -78,6 +87,15 @@ class HotelCollectionCoordinator(DataUpdateCoordinator[DeviceState]):
         # the device follows the ACK with an S status push; read back as a fallback
         try:
             await self.client.read(cmd)
+        except HotelCollectionError:
+            pass
+        self.async_set_updated_data(self.state)
+
+    async def async_write_power_for_gate(self, on: bool) -> None:
+        """Power write made by the HVAC pause (not the person)."""
+        await self.client.write(CMD_POWER, 1 if on else 0)
+        try:
+            await self.client.read(CMD_POWER)
         except HotelCollectionError:
             pass
         self.async_set_updated_data(self.state)

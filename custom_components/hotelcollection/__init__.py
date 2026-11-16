@@ -18,7 +18,8 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
 from .codec import DAY_NAMES, SPRAY_MAX_S, SPRAY_MIN_S
-from .const import DEFAULT_PORT, DOMAIN
+from .const import CONF_HVAC_FAN_ENTITY, CONF_START_DELAY, DEFAULT_PORT, DEFAULT_START_DELAY, DOMAIN
+from .gate import ScentGate
 from .coordinator import HotelCollectionCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -93,9 +94,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: HotelCollectionConfigEnt
         hass, entry, entry.data[CONF_HOST], entry.data.get(CONF_PORT, DEFAULT_PORT)
     )
     await coordinator.async_config_entry_first_refresh()
+    coordinator.gate = ScentGate(
+        hass,
+        coordinator,
+        entry.options.get(CONF_HVAC_FAN_ENTITY),
+        float(entry.options.get(CONF_START_DELAY, DEFAULT_START_DELAY)),
+    )
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # start after the Scent switch has restored the person's last choice
+    coordinator.gate.start()
+    entry.async_on_unload(coordinator.gate.stop)
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     return True
+
+
+async def _async_options_updated(hass: HomeAssistant, entry: HotelCollectionConfigEntry) -> None:
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: HotelCollectionConfigEntry) -> bool:

@@ -28,6 +28,9 @@
       },
       "child_lock": {
         "name": "Child lock"
+      },
+      "scent": {
+        "name": "Scent"
       }
     },
     "sensor": {
@@ -54,6 +57,17 @@
       },
       "days_left": {
         "name": "Oil days left"
+      },
+      "scent_status": {
+        "name": "Scent status",
+        "state": {
+          "spraying": "Spraying",
+          "starting": "Starting (waiting for airflow)",
+          "waiting_for_hvac": "Paused: HVAC fan off",
+          "outside_schedule": "Outside schedule",
+          "off_by_user": "Off",
+          "off": "Diffuser off"
+        }
       }
     },
     "text": {
@@ -114,6 +128,18 @@
         "pause_seconds": {
           "name": "Pause time",
           "description": "Seconds of pause between sprays, 5-300."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "HVAC pause",
+        "description": "Pick the entity that shows the HVAC fan is running (a thermostat, a blower sensor or a switch). The diffuser then sprays only while the fan runs and a mode is scheduled. Leave it empty to turn the HVAC pause off.",
+        "data": {
+          "hvac_fan_entity": "HVAC fan entity",
+          "start_delay": "Start delay after the fan starts"
         }
       }
     }
