@@ -5,6 +5,7 @@ from __future__ import annotations
 from homeassistant.components.select import SelectEntity
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import HotelCollectionConfigEntry
@@ -15,15 +16,23 @@ NONE = "none"
 # domains always offered; for the others only entities that look like a fan or blower
 ALWAYS = ("climate", "fan")
 IF_NAMED = ("binary_sensor", "sensor", "switch", "input_boolean")
-WORDS = ("fan", "blower", "hvac", "furnace", "air_handler")
+WORDS = ("blower", "_fan", "fan_", "air_handler", "furnace")
+SKIP = ("hours", "total", "time", "count", "filter", "rssi", "lqi", "continuous")
 
 
-def fan_candidates(hass: HomeAssistant, current: str | None) -> list[str]:
+def fan_candidates(hass: HomeAssistant, current: str | None, own: set[str] = frozenset()) -> list[str]:
     found = []
     for state in hass.states.async_all():
         domain = state.domain
-        name = f"{state.entity_id} {state.name}".lower().replace(" ", "_")
-        if domain in ALWAYS or (domain in IF_NAMED and any(w in name for w in WORDS)):
+        if state.entity_id in own:
+            continue
+        oid = state.entity_id.split(".", 1)[1]
+        name = f"_{oid}_"
+        if domain in ALWAYS or (
+            domain in IF_NAMED
+            and any(w in name for w in WORDS)
+            and not any(w in oid for w in SKIP)
+        ):
             found.append(state.entity_id)
     if current and current not in found:
         found.append(current)
@@ -57,7 +66,15 @@ class HvacFanSelect(HotelCollectionEntity, SelectEntity):
 
     @property
     def options(self) -> list[str]:
-        return fan_candidates(self.hass, self.coordinator.config_entry.options.get(CONF_HVAC_FAN_ENTITY))
+        own = {
+            e.entity_id
+            for e in er.async_entries_for_config_entry(
+                er.async_get(self.hass), self.coordinator.config_entry.entry_id
+            )
+        }
+        return fan_candidates(
+            self.hass, self.coordinator.config_entry.options.get(CONF_HVAC_FAN_ENTITY), own
+        )
 
     @property
     def current_option(self) -> str:

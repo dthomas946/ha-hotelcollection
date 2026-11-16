@@ -69,7 +69,7 @@ air**. Prefer the first that exists:
 
 How to look: list the entities in the options of `select.<p>_hvac_fan_source`.
 The integration pre-filters to climate and fan entities and anything named
-fan/blower/hvac/furnace. Check each candidate's current state and attributes.
+fan, blower or furnace. Check each candidate's current state and attributes.
 With more than one HVAC system, **ASK** which system's ducts the diffuser feeds.
 If the answer is "either", offer to create a template binary sensor that is `on`
 when any of the relevant blowers runs, and use that.
