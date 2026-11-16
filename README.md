@@ -1,5 +1,7 @@
 # Hotel Collection for Home Assistant
 
+*Created with Claude.ai.*
+
 Local, cloud-free Home Assistant control of **Hotel Collection** scent diffusers —
 verified on the **Villa 2.0** — that pair with the *ScentArea* app.
 
@@ -52,5 +54,11 @@ scans are fine.
 See [docs/protocol.md](docs/protocol.md). The codec is pure Python
 (`custom_components/hotelcollection/codec.py`) and tested against real captures
 (`tests/test_codec.py`).
+
+## Credits
+
+Created by [@dthomas946](https://github.com/dthomas946) with **Claude (claude.ai)** by Anthropic —
+protocol reverse-engineering, codec, tests and integration were built together
+in a Claude.ai session in November 2026.
 
 Not affiliated with Hotel Collection, ScentArea or Aroma360.
