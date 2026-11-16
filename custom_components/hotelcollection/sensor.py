@@ -90,6 +90,15 @@ SENSORS = (
         value_fn=_hours_left,
     ),
     HotelCollectionSensorDescription(
+        key="days_left",
+        translation_key="days_left",
+        native_unit_of_measurement=UnitOfTime.DAYS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:calendar-end",
+        value_fn=lambda s: s.days_left,
+    ),
+    HotelCollectionSensorDescription(
         key="schedule",
         translation_key="schedule",
         icon="mdi:calendar-clock",

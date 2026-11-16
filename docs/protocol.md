@@ -29,8 +29,8 @@ On connect the device sends `R 02` (its clock).
 | 01 | `01` + 16-byte zero-padded ASCII | Device name (`Device_01`) | ? |
 | 02 | year16, month, day, hour, min, sec, weekday (1 = Mon … 7 = Sun) | Device clock | ? |
 | 03 | `00`/`01` | Fan | ✔ |
-| 04 | 16-bit | Unknown | |
-| 05 | capacity16, remaining16, rate8 | Bottle mL, remaining mL, rate in 0.1 mL/h | ? |
+| 04 | 16-bit | Days of oil left — the device's estimate from remaining oil, rate and the schedule's spray time; pushed when they change | |
+| 05 | capacity16, remaining16, rate8 | Bottle mL, remaining mL, rate in 0.1 mL per hour of spraying. Write `W 05` + the same 5 bytes | ✔ |
 | 06 | n × 11-byte slots | Schedule — read takes a 1-byte slot bitmask (`1F` = all 5; no mask = arbitrary subset). Write `W 06` + one 11-byte slot → `W 06 ACK`, then `S 06` echo and `S 0A` | ✔ |
 | 08 | `00`/`01` | Power | ✔ |
 | 09 | `00`/`01` | Child lock | ✔ |

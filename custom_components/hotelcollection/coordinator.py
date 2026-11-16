@@ -14,6 +14,7 @@ from .client import HotelCollectionClient, HotelCollectionError
 from .codec import (
     ALL_SLOTS,
     CMD_CLOCK,
+    CMD_DAYS_LEFT,
     CMD_FAN,
     CMD_LOCK,
     CMD_NAME,
@@ -23,6 +24,7 @@ from .codec import (
     DeviceState,
     ScheduleSlot,
     days_to_mask,
+    encode_oil,
     encode_slot,
     Frame,
 )
@@ -30,7 +32,7 @@ from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-POLL_CMDS = (CMD_POWER, CMD_FAN, CMD_LOCK, CMD_OIL, CMD_CLOCK)
+POLL_CMDS = (CMD_POWER, CMD_FAN, CMD_LOCK, CMD_OIL, CMD_DAYS_LEFT, CMD_CLOCK)
 
 
 class HotelCollectionCoordinator(DataUpdateCoordinator[DeviceState]):
@@ -105,6 +107,29 @@ class HotelCollectionCoordinator(DataUpdateCoordinator[DeviceState]):
         except HotelCollectionError as err:
             await self.client.close()
             raise HomeAssistantError(f"Diffuser did not accept the schedule change: {err}") from err
+        self.async_set_updated_data(self.state)
+
+    async def async_set_oil(self, *, capacity_ml=None, remaining_ml=None, rate_ml_h=None) -> None:
+        """Change bottle size, oil remaining and/or consumption rate (others kept)."""
+        oil = self.state.oil
+        if oil is None:
+            raise HomeAssistantError("Oil settings not loaded yet")
+        capacity = int(capacity_ml if capacity_ml is not None else oil.capacity_ml)
+        remaining = int(remaining_ml if remaining_ml is not None else oil.remaining_ml)
+        rate = float(rate_ml_h if rate_ml_h is not None else oil.rate_ml_h)
+        if capacity_ml is not None and remaining_ml is None:
+            remaining = min(remaining, capacity)
+        try:
+            payload = encode_oil(capacity, remaining, rate)
+        except ValueError as err:
+            raise HomeAssistantError(str(err)) from err
+        try:
+            await self.client.write_payload(CMD_OIL, payload)
+            await self.client.read(CMD_OIL)
+            await self.client.read(CMD_DAYS_LEFT)
+        except HotelCollectionError as err:
+            await self.client.close()
+            raise HomeAssistantError(f"Diffuser did not accept the oil settings: {err}") from err
         self.async_set_updated_data(self.state)
 
     async def async_shutdown(self) -> None:

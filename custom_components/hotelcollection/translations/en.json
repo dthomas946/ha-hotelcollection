@@ -44,18 +44,37 @@
         "name": "Consumption rate"
       },
       "hours_remaining": {
-        "name": "Run time remaining"
+        "name": "Spraying time left"
       },
       "schedule": {
         "name": "Active schedule slots"
       },
       "device_clock": {
         "name": "Device clock"
+      },
+      "days_left": {
+        "name": "Oil days left"
       }
     },
     "text": {
       "scent": {
         "name": "Scent"
+      }
+    },
+    "number": {
+      "consumption_rate_setting": {
+        "name": "Consumption rate setting"
+      },
+      "oil_remaining_setting": {
+        "name": "Oil remaining setting"
+      },
+      "bottle_size_setting": {
+        "name": "Bottle size setting"
+      }
+    },
+    "button": {
+      "oil_refilled": {
+        "name": "Oil refilled"
       }
     }
   },

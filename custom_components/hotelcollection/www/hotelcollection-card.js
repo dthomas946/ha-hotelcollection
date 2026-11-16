@@ -149,7 +149,7 @@ class HotelCollectionCard extends HTMLElement {
     const ids = [
       ["switch", "power"], ["switch", "fan"], ["sensor", "oil_level"], ["sensor", "oil_remaining"],
       ["sensor", "bottle_size"], ["sensor", "run_time_remaining"], ["sensor", "consumption_rate"],
-      ["sensor", "active_schedule_slots"], ["text", "scent"],
+      ["sensor", "active_schedule_slots"], ["text", "scent"], ["sensor", "oil_days_left"],
     ];
     const minute = Math.floor(Date.now() / 60000);
     const key = minute + "|" + ids.map(([d, s]) => {
@@ -288,6 +288,7 @@ class HotelCollectionCard extends HTMLElement {
     const hours = parseFloat(this._st("sensor", "run_time_remaining")?.state);
     const rate = this._st("sensor", "consumption_rate")?.state;
     const scent = this._st("text", "scent")?.state;
+    const daysLeft = parseFloat(this._st("sensor", "oil_days_left")?.state);
     const unavailable = power && power.state === "unavailable";
 
     const now = new Date();
@@ -359,6 +360,7 @@ class HotelCollectionCard extends HTMLElement {
         .num { font-size:.9rem; }
         .sub { grid-column: 1 / -1; font-size:.8rem; color: var(--secondary-text-color); }
         .warn { padding: 8px; color: var(--error-color); }
+        .link { text-decoration: underline dotted; cursor: pointer; }
         .bar { cursor: pointer; }
         .list { margin-top: 14px; display:flex; flex-direction:column; gap:4px; }
         .lhead, .ehead { font-size:.85rem; color: var(--secondary-text-color); margin-bottom:2px; display:flex; align-items:center; justify-content:space-between; }
@@ -405,14 +407,15 @@ class HotelCollectionCard extends HTMLElement {
         <div class="oil" id="oil">
           <div class="meter"><div class="fill" style="width:${levelPct}%"></div></div>
           <div class="num">${isNaN(level) ? "–" : Math.round(level) + " %"}</div>
-          <div class="sub">${remaining ?? "–"} of ${bottle ?? "–"} mL · ${rate ?? "–"} mL/h · ${isNaN(hours) ? "–" : Math.round(hours) + " h"} of spraying left</div>
+          <div class="sub">${remaining ?? "–"} of ${bottle ?? "–"} mL${isNaN(daysLeft) ? "" : ` · about <b>${Math.round(daysLeft)} days</b> left on this schedule`} · ${isNaN(hours) ? "–" : Math.round(hours) + " h"} of spraying at <span class="link" id="rate">${rate ?? "–"} mL/h</span></div>
         </div>
       </ha-card>`;
 
     const $ = (id) => this.shadowRoot.getElementById(id);
     $("power")?.addEventListener("click", () => this._toggle("power"));
     $("fan")?.addEventListener("click", () => this._toggle("fan"));
-    $("oil")?.addEventListener("click", () => this._more("sensor", "oil_remaining"));
+    $("oil")?.addEventListener("click", () => this._more("number", "oil_remaining_setting"));
+    $("rate")?.addEventListener("click", (ev) => { ev.stopPropagation(); this._more("number", "consumption_rate_setting"); });
     $("scent")?.addEventListener("click", () => this._more("text", "scent"));
     const root = this.shadowRoot;
     root.querySelectorAll("[data-bar]").forEach((el) => el.addEventListener("click", () => this._openEditor(Number(el.dataset.bar))));

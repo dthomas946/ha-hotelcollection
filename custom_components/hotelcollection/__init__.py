@@ -23,7 +23,7 @@ from .coordinator import HotelCollectionCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.TEXT]
+PLATFORMS = [Platform.BUTTON, Platform.NUMBER, Platform.SENSOR, Platform.SWITCH, Platform.TEXT]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 CARD_URL = f"/{DOMAIN}/hotelcollection-card.js"
 

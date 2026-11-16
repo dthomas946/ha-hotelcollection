@@ -28,7 +28,7 @@ TYPE_STATUS = 0x53  # 'S'
 CMD_NAME = 0x01
 CMD_CLOCK = 0x02
 CMD_FAN = 0x03
-CMD_UNKNOWN_04 = 0x04
+CMD_DAYS_LEFT = 0x04  # device's estimate of days of oil left at the current schedule
 CMD_OIL = 0x05
 CMD_SCHEDULE = 0x06
 CMD_POWER = 0x08
@@ -134,6 +134,18 @@ class OilInfo:
     @property
     def percent(self) -> float:
         return round(100 * self.remaining_ml / self.capacity_ml, 1) if self.capacity_ml else 0.0
+
+
+def encode_oil(capacity_ml: int, remaining_ml: int, rate_ml_h: float) -> bytes:
+    """cmd 05 write payload. Rate is mL per hour of spraying, in 0.1 steps."""
+    tenths = round(rate_ml_h * 10)
+    if not 0 < capacity_ml <= 0xFFFF:
+        raise ValueError("bottle size must be 1-65535 mL")
+    if not 0 <= remaining_ml <= capacity_ml:
+        raise ValueError("oil remaining must be between 0 and the bottle size")
+    if not 1 <= tenths <= 255:
+        raise ValueError("consumption rate must be 0.1-25.5 mL/h")
+    return capacity_ml.to_bytes(2, "big") + remaining_ml.to_bytes(2, "big") + bytes([tenths])
 
 
 def decode_oil(payload: bytes) -> OilInfo | None:
@@ -258,6 +270,7 @@ class DeviceState:
     fan: bool | None = None
     lock: bool | None = None
     oil: OilInfo | None = None
+    days_left: int | None = None
     clock: datetime | None = None
     schedule: list[ScheduleSlot] = field(default_factory=list)
     raw: dict[int, bytes] = field(default_factory=dict)
@@ -269,7 +282,7 @@ class DeviceState:
         if frame.ftype not in (TYPE_READ, TYPE_STATUS):
             return False
         p = frame.payload
-        before = (self.name, self.power, self.fan, self.lock, self.oil, self.schedule)
+        before = (self.name, self.power, self.fan, self.lock, self.oil, self.days_left, self.schedule)
         self.raw[frame.cmd] = p
         if frame.cmd == CMD_NAME:
             self.name = decode_name(p)
@@ -282,6 +295,8 @@ class DeviceState:
             self.fan = bool(p[0])
         elif frame.cmd == CMD_LOCK and p:
             self.lock = bool(p[0])
+        elif frame.cmd == CMD_DAYS_LEFT and len(p) >= 2:
+            self.days_left = int.from_bytes(p[0:2], "big")
         elif frame.cmd == CMD_OIL:
             self.oil = decode_oil(p) or self.oil
         elif frame.cmd == CMD_SCHEDULE:
@@ -289,5 +304,5 @@ class DeviceState:
             merged = {s.slot: s for s in self.schedule}
             merged.update({s.slot: s for s in decode_schedule(p)})
             self.schedule = [merged[k] for k in sorted(merged)]
-        after = (self.name, self.power, self.fan, self.lock, self.oil, self.schedule)
+        after = (self.name, self.power, self.fan, self.lock, self.oil, self.days_left, self.schedule)
         return before != after

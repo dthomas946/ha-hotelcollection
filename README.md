@@ -22,8 +22,13 @@ Aroma360 2.0 models) likely speak the same protocol but are untested.
 | Oil remaining | sensor, mL | From the device |
 | Oil level | sensor, % | Remaining ÷ bottle size |
 | Bottle size | sensor, mL (diagnostic) | |
-| Consumption rate | sensor, mL/h | The rate set in the app |
-| Run time remaining | sensor, h | Remaining ÷ rate — hours of *spraying* time, not calendar time |
+| Consumption rate | sensor, mL/h | mL used per hour of *spraying* — a calibration value for the oil gauge, not a strength setting |
+| Spraying time left | sensor, h | Remaining ÷ rate — hours of spraying, not calendar time |
+| Oil days left | sensor, days | The diffuser's own estimate at the current schedule |
+| Consumption rate setting | number, mL/h | Edit to calibrate the gauge (0.1–25.5) |
+| Oil remaining setting | number, mL | Correct the level after measuring the bottle |
+| Bottle size setting | number, mL (config) | |
+| Oil refilled | button | Sets oil remaining to the bottle size |
 | Active schedule slots | sensor | Full slot list (days, times, work/pause) in attributes |
 | Device clock | sensor (diagnostic, off by default) | |
 | Scent | text | Kept in HA — the diffuser does not store the scent name |
@@ -74,8 +79,14 @@ If you use firewall groups/VLANs, allow Home Assistant → diffuser on TCP 8080.
 ## Not yet supported
 
 - Editing the schedule (read-only for now; edit it in the ScentArea app).
-- Changing the consumption rate or bottle size.
-- Unknown values: cmd `04`, cmd `0B`.
+- Unknown value: cmd `0B`.
+
+### How much you smell
+
+Scent strength comes from the **spray** and **pause** seconds in each mode, plus how
+long the modes run. The consumption rate only tells the diffuser how fast oil is used
+so it can estimate what's left. To calibrate it, note the oil level, let it run about
+10 days, measure the bottle, then adjust the rate until *Oil remaining* matches.
 
 ## If Home Assistant drops off
 

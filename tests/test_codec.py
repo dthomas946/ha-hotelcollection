@@ -133,3 +133,20 @@ def test_partial_schedule_push_is_merged():
     assert st.apply(parse(echo)[0]) is True
     assert [s.slot for s in st.schedule] == [1, 2, 3, 4, 5]
     assert st.schedule[4].end == "23:30" and st.schedule[0].start == "05:30"
+
+
+def test_oil_write_matches_frame_the_villa_accepted():
+    # 2026-11-16: W 05 with rate 4.4 was ACKed and read back
+    frame = codec.encode(codec.TYPE_WRITE, codec.CMD_OIL, codec.encode_oil(500, 470, 4.4))
+    assert frame == H("a5aaac5c570501f401d62cc5ccca")
+    import pytest
+    with pytest.raises(ValueError):
+        codec.encode_oil(500, 501, 4.3)
+    with pytest.raises(ValueError):
+        codec.encode_oil(500, 100, 0)
+
+
+def test_days_left_push():
+    st = codec.DeviceState()
+    assert st.apply(parse(codec.encode(codec.TYPE_STATUS, codec.CMD_DAYS_LEFT, H("001c")))[0]) is True
+    assert st.days_left == 28
