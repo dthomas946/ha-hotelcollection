@@ -77,12 +77,13 @@ If you use firewall groups/VLANs, allow Home Assistant → diffuser on TCP 8080.
 - Changing the consumption rate or bottle size.
 - Unknown values: cmd `04`, cmd `0B`.
 
-## ⚠️ One local connection at a time
+## If Home Assistant drops off
 
-The diffuser serves one local client. The ScentArea app in **AP mode** (and possibly
-when it reaches the diffuser directly on your Wi-Fi) takes that connection and
-Home Assistant is dropped until the app lets go. Keep the app in Wi-Fi mode and close it
-when you're done; if Home Assistant stays disconnected, unplug the diffuser for 10 seconds.
+You can use the ScentArea app (Wi-Fi or AP mode) alongside this integration; changes
+made in the app show up in Home Assistant right away. Rarely, the diffuser stops
+accepting Home Assistant's connection (seen once while saving in the app). If the
+entities stay unavailable for more than a couple of minutes, unplug the diffuser for
+10 seconds; Home Assistant reconnects on its own.
 
 ## ⚠️ Don't port-scan with version detection
 
