@@ -69,7 +69,11 @@ async def async_setup_entry(
     entry: HotelCollectionConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    async_add_entities(HotelCollectionNumber(entry.runtime_data, d) for d in NUMBERS)
+    c = entry.runtime_data
+    async_add_entities(
+        [HotelCollectionNumber(c, d) for d in NUMBERS]
+        + [TrackerNumber(c, d) for d in TRACKER_NUMBERS]
+    )
 
 
 class HotelCollectionNumber(HotelCollectionEntity, NumberEntity):
@@ -91,3 +95,75 @@ class HotelCollectionNumber(HotelCollectionEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         await self.coordinator.async_set_oil(**{self.entity_description.field: value})
+
+
+@dataclass(frozen=True, kw_only=True)
+class TrackerNumberDescription(NumberEntityDescription):
+    value_fn: Callable[[object], float | None]
+    set_fn: Callable[[object, float], None]
+
+
+TRACKER_NUMBERS = (
+    TrackerNumberDescription(
+        key="oil_to_add",
+        translation_key="oil_to_add",
+        native_unit_of_measurement=UnitOfVolume.MILLILITERS,
+        native_min_value=10,
+        native_max_value=5000,
+        native_step=10,
+        mode=NumberMode.BOX,
+        icon="mdi:bottle-tonic-plus",
+        entity_category=EntityCategory.CONFIG,
+        value_fn=lambda t: t.added_ml,
+        set_fn=lambda t, v: t.set_added(v),
+    ),
+    TrackerNumberDescription(
+        key="level_at_refill",
+        translation_key="level_at_refill",
+        native_unit_of_measurement=UnitOfVolume.MILLILITERS,
+        native_min_value=0,
+        native_max_value=5000,
+        native_step=1,
+        mode=NumberMode.BOX,
+        icon="mdi:bottle-tonic",
+        value_fn=lambda t: t.level_at_refill_ml,
+        set_fn=lambda t, v: t.set_level_at_refill(v),
+    ),
+    TrackerNumberDescription(
+        key="measured_oil_level",
+        translation_key="measured_oil_level",
+        native_unit_of_measurement=UnitOfVolume.MILLILITERS,
+        native_min_value=0,
+        native_max_value=5000,
+        native_step=1,
+        mode=NumberMode.BOX,
+        icon="mdi:ruler",
+        value_fn=lambda t: t.measured_ml,
+        set_fn=lambda t, v: t.set_measured(v),
+    ),
+)
+
+
+class TrackerNumber(HotelCollectionEntity, NumberEntity):
+    """Calibration inputs, kept by the integration (not on the device)."""
+
+    entity_description: TrackerNumberDescription
+
+    def __init__(self, coordinator, description: TrackerNumberDescription) -> None:
+        super().__init__(coordinator, description.key)
+        self.entity_description = description
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(self.coordinator.oil_tracker.add_listener(self.async_write_ha_state))
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def native_value(self) -> float | None:
+        return self.entity_description.value_fn(self.coordinator.oil_tracker)
+
+    async def async_set_native_value(self, value: float) -> None:
+        self.entity_description.set_fn(self.coordinator.oil_tracker, value)

@@ -145,6 +145,7 @@ async def async_setup_entry(
 ) -> None:
     entities = [HotelCollectionSensor(entry.runtime_data, d) for d in SENSORS]
     entities.append(ScentStatusSensor(entry.runtime_data))
+    entities.append(SprayTimeSinceRefillSensor(entry.runtime_data))
     async_add_entities(entities)
 
 
@@ -190,3 +191,47 @@ class ScentStatusSensor(HotelCollectionEntity, SensorEntity):
     def extra_state_attributes(self):
         gate = self.coordinator.gate
         return {"hvac_fan_entity": gate.fan_entity, "hvac_fan_running": gate.fan_on if gate.active else None}
+
+
+class SprayTimeSinceRefillSensor(HotelCollectionEntity, SensorEntity):
+    """Hours a mode ran since the last refill; the basis for calibrating the rate."""
+
+    _attr_translation_key = "spray_time_since_refill"
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = UnitOfTime.HOURS
+    _attr_suggested_display_precision = 1
+    _attr_icon = "mdi:timer-sand"
+
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator, "spray_time_since_refill")
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(self.coordinator.oil_tracker.add_listener(self.async_write_ha_state))
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def native_value(self) -> float | None:
+        t = self.coordinator.oil_tracker
+        return round(t.run_hours, 2) if t.refill_at else None
+
+    @property
+    def extra_state_attributes(self):
+        t = self.coordinator.oil_tracker
+        used = None
+        if t.level_at_refill_ml is not None and t.measured_ml is not None:
+            used = round(t.level_at_refill_ml - t.measured_ml, 1)
+        cal = t.last_calibration or {}
+        return {
+            "refilled_at": t.refill_at.isoformat() if t.refill_at else None,
+            "level_at_refill_ml": t.level_at_refill_ml,
+            "measured_ml": t.measured_ml,
+            "used_ml": used,
+            "calibrated_rate_preview": t.preview_rate,
+            "last_calibrated_at": cal.get("at"),
+            "last_calibration_old_rate": cal.get("old_rate_ml_h"),
+            "last_calibration_new_rate": cal.get("new_rate_ml_h"),
+        }

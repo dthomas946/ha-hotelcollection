@@ -71,6 +71,9 @@
       },
       "oil_to_fill": {
         "name": "Oil to fill"
+      },
+      "spray_time_since_refill": {
+        "name": "Spray time since refill"
       }
     },
     "text": {
@@ -87,11 +90,23 @@
       },
       "bottle_size_setting": {
         "name": "Bottle size setting"
+      },
+      "oil_to_add": {
+        "name": "Oil to add"
+      },
+      "level_at_refill": {
+        "name": "Level at last refill"
+      },
+      "measured_oil_level": {
+        "name": "Measured oil level"
       }
     },
     "button": {
       "oil_refilled": {
-        "name": "Oil refilled"
+        "name": "Add oil"
+      },
+      "calibrate_rate": {
+        "name": "Calibrate rate"
       }
     }
   },
@@ -131,6 +146,28 @@
         "pause_seconds": {
           "name": "Pause time",
           "description": "Seconds of pause between sprays, 5-300."
+        }
+      }
+    },
+    "record_refill": {
+      "name": "Record refill",
+      "description": "Start a new calibration baseline: how much oil the bottle held after a refill, and when. Leave the time out for now.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Diffuser",
+          "description": "Only needed when more than one diffuser is set up."
+        },
+        "level_ml": {
+          "name": "Level after refill",
+          "description": "mL in the bottle right after filling. Given with no time, also sets the diffuser's oil remaining."
+        },
+        "refilled_at": {
+          "name": "Refilled at",
+          "description": "When the refill happened, if not now."
+        },
+        "run_hours": {
+          "name": "Spray hours since",
+          "description": "Hours a mode ran since the refill. Left out, worked out from the schedule."
         }
       }
     }

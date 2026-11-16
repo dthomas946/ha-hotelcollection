@@ -1,10 +1,9 @@
-"""Oil refilled: set oil remaining to the bottle size."""
+"""Add oil and Calibrate rate buttons."""
 
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import HotelCollectionConfigEntry
@@ -16,10 +15,16 @@ async def async_setup_entry(
     entry: HotelCollectionConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    async_add_entities([OilRefilledButton(entry.runtime_data)])
+    c = entry.runtime_data
+    async_add_entities([AddOilButton(c), CalibrateButton(c)])
 
 
-class OilRefilledButton(HotelCollectionEntity, ButtonEntity):
+class AddOilButton(HotelCollectionEntity, ButtonEntity):
+    """Poured "Oil to add" into the bottle: level += that, capped at the bottle size.
+
+    Keeps the old key so the entity id (button.<name>_oil_refilled) does not change.
+    """
+
     _attr_translation_key = "oil_refilled"
     _attr_icon = "mdi:bottle-tonic-plus-outline"
 
@@ -27,7 +32,15 @@ class OilRefilledButton(HotelCollectionEntity, ButtonEntity):
         super().__init__(coordinator, "oil_refilled")
 
     async def async_press(self) -> None:
-        oil = self.coordinator.data.oil
-        if oil is None:
-            raise HomeAssistantError("Oil settings not loaded yet")
-        await self.coordinator.async_set_oil(remaining_ml=oil.capacity_ml)
+        await self.coordinator.oil_tracker.async_add_oil()
+
+
+class CalibrateButton(HotelCollectionEntity, ButtonEntity):
+    _attr_translation_key = "calibrate_rate"
+    _attr_icon = "mdi:tune-variant"
+
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator, "calibrate_rate")
+
+    async def async_press(self) -> None:
+        await self.coordinator.oil_tracker.async_calibrate()

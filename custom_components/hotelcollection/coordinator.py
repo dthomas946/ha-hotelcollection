@@ -50,6 +50,7 @@ class HotelCollectionCoordinator(DataUpdateCoordinator[DeviceState]):
         self.state = DeviceState()
         self.client = HotelCollectionClient(host, port, self._handle_frame)
         self.gate = None  # set by async_setup_entry (gate.ScentGate)
+        self.oil_tracker = None  # set by async_setup_entry (calibration.OilTracker)
 
     @callback
     def _handle_frame(self, frame: Frame) -> None:

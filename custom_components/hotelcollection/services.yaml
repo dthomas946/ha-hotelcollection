@@ -52,3 +52,30 @@ set_mode:
           max: 300
           unit_of_measurement: s
           mode: box
+record_refill:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: hotelcollection
+    level_ml:
+      example: 720
+      selector:
+        number:
+          min: 0
+          max: 5000
+          unit_of_measurement: mL
+          mode: box
+    refilled_at:
+      example: "2026-11-13 16:00:00"
+      selector:
+        datetime:
+    run_hours:
+      example: 30
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 0.1
+          unit_of_measurement: h
+          mode: box

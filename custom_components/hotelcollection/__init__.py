@@ -19,6 +19,7 @@ from homeassistant.loader import async_get_integration
 
 from .codec import DAY_NAMES, SPRAY_MAX_S, SPRAY_MIN_S
 from .const import CONF_HVAC_FAN_ENTITY, CONF_START_DELAY, DEFAULT_PORT, DEFAULT_START_DELAY, DOMAIN
+from .calibration import OilTracker
 from .gate import ScentGate
 from .coordinator import HotelCollectionCoordinator
 
@@ -31,6 +32,7 @@ CARD_URL = f"/{DOMAIN}/hotelcollection-card.js"
 type HotelCollectionConfigEntry = ConfigEntry[HotelCollectionCoordinator]
 
 SERVICE_SET_MODE = "set_mode"
+SERVICE_RECORD_REFILL = "record_refill"
 
 
 def _day(value: str) -> str:
@@ -58,6 +60,28 @@ SET_MODE_SCHEMA = vol.Schema(
 )
 
 
+RECORD_REFILL_SCHEMA = vol.Schema(
+    {
+        vol.Optional("config_entry_id"): cv.string,
+        vol.Optional("level_ml"): vol.All(vol.Coerce(float), vol.Range(min=0, max=5000)),
+        vol.Optional("refilled_at"): cv.datetime,
+        vol.Optional("run_hours"): vol.All(vol.Coerce(float), vol.Range(min=0)),
+    }
+)
+
+
+def _entry(hass: HomeAssistant, entry_id: str | None):
+    entries = [
+        e for e in hass.config_entries.async_entries(DOMAIN)
+        if e.state is ConfigEntryState.LOADED and (entry_id is None or e.entry_id == entry_id)
+    ]
+    if not entries:
+        raise ServiceValidationError("No loaded Hotel Collection diffuser found")
+    if entry_id is None and len(entries) > 1:
+        raise ServiceValidationError("Several diffusers are set up: give config_entry_id")
+    return entries[0]
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Serve the dashboard card and load it on every dashboard."""
     integration = await async_get_integration(hass, DOMAIN)
@@ -73,19 +97,22 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     async def set_mode(call: ServiceCall) -> None:
         data = dict(call.data)
-        entry_id = data.pop("config_entry_id", None)
+        entry = _entry(hass, data.pop("config_entry_id", None))
         mode = data.pop("mode")
-        entries = [
-            e for e in hass.config_entries.async_entries(DOMAIN)
-            if e.state is ConfigEntryState.LOADED and (entry_id is None or e.entry_id == entry_id)
-        ]
-        if not entries:
-            raise ServiceValidationError("No loaded Hotel Collection diffuser found")
-        if entry_id is None and len(entries) > 1:
-            raise ServiceValidationError("Several diffusers are set up: give config_entry_id")
-        await entries[0].runtime_data.async_set_mode(mode, **data)
+        await entry.runtime_data.async_set_mode(mode, **data)
+
+    async def record_refill(call: ServiceCall) -> None:
+        entry = _entry(hass, call.data.get("config_entry_id"))
+        await entry.runtime_data.oil_tracker.async_record_refill(
+            call.data.get("level_ml"),
+            at=call.data.get("refilled_at"),
+            run_hours=call.data.get("run_hours"),
+        )
 
     hass.services.async_register(DOMAIN, SERVICE_SET_MODE, set_mode, schema=SET_MODE_SCHEMA)
+    hass.services.async_register(
+        DOMAIN, SERVICE_RECORD_REFILL, record_refill, schema=RECORD_REFILL_SCHEMA
+    )
     return True
 
 
@@ -100,11 +127,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: HotelCollectionConfigEnt
         entry.options.get(CONF_HVAC_FAN_ENTITY),
         float(entry.options.get(CONF_START_DELAY, DEFAULT_START_DELAY)),
     )
+    coordinator.oil_tracker = OilTracker(hass, coordinator, entry.entry_id)
+    await coordinator.oil_tracker.async_load()
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     # start after the Scent switch has restored the person's last choice
     coordinator.gate.start()
     entry.async_on_unload(coordinator.gate.stop)
+    coordinator.oil_tracker.start()
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     return True
 
@@ -116,5 +146,6 @@ async def _async_options_updated(hass: HomeAssistant, entry: HotelCollectionConf
 async def async_unload_entry(hass: HomeAssistant, entry: HotelCollectionConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
+        await entry.runtime_data.oil_tracker.async_stop()
         await entry.runtime_data.client.close()
     return unloaded
