@@ -33,7 +33,7 @@ Aroma360 2.0 models) likely speak the same protocol but are untested.
 | Oil to fill | sensor, mL | Room left below the 90 % max-fill line (fl oz in attributes) — how much to order |
 | Add oil | button | Adds *Oil to add* to oil remaining (capped at the bottle size) and starts a new calibration baseline |
 | Oil to add | number | How much you pour in per refill (default 500 mL) |
-| Spray time since refill | sensor | Hours a mode actually ran since the last refill |
+| Spray time since refill | sensor | Hours the pump actually sprayed since the last refill |
 | Level at last refill / Measured oil level | number | Calibration inputs |
 | Calibrate rate | button | Sets the consumption rate (and oil remaining) from the measured level |
 | Active schedule slots | sensor | Full slot list (days, times, work/pause) in attributes |
@@ -65,17 +65,19 @@ diffuser is or isn't spraying.
 ## Oil calibration
 
 The Villa never measures its oil. It takes the level you last gave it and subtracts
-*consumption rate × hours a mode ran*, so the level is only as good as the rate.
-The integration counts the hours a mode actually ran since the last refill
-(power on and inside an enabled mode), so you can correct the rate:
+*consumption rate × hours of spraying* (mode time × spray ÷ (spray + pause)), so
+the level is only as good as the rate. The integration counts the spraying hours
+since the last refill (power on, inside an enabled mode, weighted by that mode's
+spray share), so you can correct the rate:
 
 1. When you refill, press **Add oil** (or call `hotelcollection.record_refill`
    with the level and time, for a refill you forgot to log).
 2. Some days later, read the real level off the bottle and enter it in
    **Measured oil level**. *Spray time since refill* shows the preview rate.
 3. Press **Calibrate rate**: the rate becomes
-   `(level at refill − measured) ÷ hours run`, and oil remaining becomes the
-   measured level. It needs at least 10 hours of spraying; longer is more accurate.
+   `(level at refill − measured) ÷ spraying hours`, and oil remaining becomes the
+   measured level. It needs at least 5 hours of spraying (about a week on the
+   current schedule is better); longer is more accurate.
 
 ## Dashboard card
 

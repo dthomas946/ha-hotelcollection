@@ -22,14 +22,15 @@ def test_rate_from_drop():
     assert calibration.calibrated_rate(720, 600, 30) == 4.0
 
 
-@pytest.mark.parametrize("args", [(720, 600, 2), (500, 520, 30), (720, 0, 10.5)])
+@pytest.mark.parametrize("args", [(720, 600, 3), (500, 520, 30), (720, 0, 10.5)])
 def test_rate_refuses_nonsense(args):
     with pytest.raises(ValueError):
         calibration.calibrated_rate(*args)
 
 
 def test_schedule_hours_between():
-    # Fri 16:00 -> Mon 12:00: Sat + Sun 20:00-24:00 (8 h) + Mon 05:30-12:00 (6.5 h)
+    # Fri 16:00 -> Mon 12:00: Sat + Sun 20:00-24:00 at 70/160 (8 h x 0.4375)
+    # + Mon 05:30-12:00 at 60/150 (6.5 h x 0.4) = 3.5 + 2.6 h of spraying
     start = datetime(2026, 11, 13, 16, 0)
     end = datetime(2026, 11, 16, 12, 0)
-    assert calibration.schedule_hours_between(SLOTS, start, end) == pytest.approx(14.5)
+    assert calibration.schedule_hours_between(SLOTS, start, end) == pytest.approx(6.1)

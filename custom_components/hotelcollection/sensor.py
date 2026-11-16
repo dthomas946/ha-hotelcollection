@@ -194,7 +194,7 @@ class ScentStatusSensor(HotelCollectionEntity, SensorEntity):
 
 
 class SprayTimeSinceRefillSensor(HotelCollectionEntity, SensorEntity):
-    """Hours a mode ran since the last refill; the basis for calibrating the rate."""
+    """Hours of spraying since the last refill; the basis for calibrating the rate."""
 
     _attr_translation_key = "spray_time_since_refill"
     _attr_device_class = SensorDeviceClass.DURATION

@@ -167,7 +167,7 @@
         },
         "run_hours": {
           "name": "Spray hours since",
-          "description": "Hours a mode ran since the refill. Left out, worked out from the schedule."
+          "description": "Hours the pump sprayed since the refill. Left out, worked out from the schedule."
         }
       }
     }

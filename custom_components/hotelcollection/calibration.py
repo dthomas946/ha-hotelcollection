@@ -1,12 +1,13 @@
 """Oil calibration: track spraying time since the last refill, correct the rate.
 
-The Villa never measures its oil. It subtracts `rate x hours a mode ran` from
-the number it was last given, so the level is only as good as the rate. This
-module counts the hours a mode actually ran since the last refill (power on and
-inside an enabled mode) and, once you read the real level off the bottle,
-works out the rate that would have predicted it:
+The Villa never measures its oil. It subtracts `rate x hours of spraying` from
+the number it was last given (spraying = mode time x spray / (spray + pause)),
+so the level is only as good as the rate. This module counts the spraying hours
+since the last refill (power on, inside an enabled mode, weighted by that mode's
+spray share) and, once you read the real level off the bottle, works out the
+rate that would have predicted it:
 
-    rate = (level at refill - level measured now) / hours run since refill
+    rate = (level at refill - level measured now) / spraying hours since refill
 """
 
 from __future__ import annotations
@@ -22,18 +23,18 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
-from .gate import scheduled_now
+from .gate import spray_fraction_now
 
 _LOGGER = logging.getLogger(__name__)
 
 TICK = timedelta(seconds=60)
 MAX_GAP_S = 180  # a longer gap (HA down) is not counted as spraying
 RATE_MIN, RATE_MAX = 0.1, 25.5
-MIN_HOURS_TO_CALIBRATE = 10.0
+MIN_HOURS_TO_CALIBRATE = 5.0
 
 
 def calibrated_rate(level_at_refill_ml: float, measured_ml: float, run_hours: float) -> float:
-    """Rate in mL per hour of mode time that explains the measured drop."""
+    """Rate in mL per hour of spraying that explains the measured drop."""
     if run_hours < MIN_HOURS_TO_CALIBRATE:
         raise ValueError(
             f"Only {run_hours:.1f} h of spraying since the refill; wait for at least "
@@ -52,12 +53,11 @@ def calibrated_rate(level_at_refill_ml: float, measured_ml: float, run_hours: fl
 
 
 def schedule_hours_between(slots, start: datetime, end: datetime) -> float:
-    """Hours the schedule had a mode running between two local times."""
-    minutes = 0
+    """Hours of spraying the schedule called for between two local times."""
+    minutes = 0.0
     t = start.replace(second=0, microsecond=0)
     while t < end:
-        if scheduled_now(slots, t):
-            minutes += 1
+        minutes += spray_fraction_now(slots, t)
         t += timedelta(minutes=1)
     return minutes / 60
 
@@ -131,8 +131,9 @@ class OilTracker:
         state = self.coordinator.state
         if self.refill_at is None or not 0 < gap <= MAX_GAP_S:
             return
-        if state.power and scheduled_now(state.schedule, now):
-            self.run_s += gap
+        share = spray_fraction_now(state.schedule, now) if state.power else 0.0
+        if share:
+            self.run_s += gap * share
             self._save()
 
     @property

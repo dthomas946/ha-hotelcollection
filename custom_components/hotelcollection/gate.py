@@ -67,6 +67,22 @@ def scheduled_now(slots, now: datetime) -> bool:
     return False
 
 
+def spray_fraction_now(slots, now: datetime) -> float:
+    """Share of the time the pump sprays right now: spray / (spray + pause) of the
+    running mode, 0 outside every enabled mode."""
+    day = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")[now.weekday()]
+    minute = now.hour * 60 + now.minute
+    for s in slots:
+        if not s.enabled or day not in s.days or s.work_s + s.pause_s == 0:
+            continue
+        sh, sm = (int(x) for x in s.start.split(":"))
+        eh, em = (int(x) for x in s.end.split(":"))
+        end = 24 * 60 if (eh, em) == (23, 59) else eh * 60 + em
+        if sh * 60 + sm <= minute < end:
+            return s.work_s / (s.work_s + s.pause_s)
+    return 0.0
+
+
 def decide(scent_on: bool, gate_active: bool, fan_on: bool, scheduled: bool,
            fan_on_for_s: float, start_delay_s: float, power_on: bool | None) -> tuple[bool | None, str]:
     """Return (desired power or None for 'leave as is', status)."""
