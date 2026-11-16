@@ -91,7 +91,11 @@ long the modes run. From the ScentArea-family manual (DaVinci360 2.0):
 - A mode **cannot run past midnight** — end at 23:59 and start another mode at 00:00.
 - Suggested ceilings for a bottle to last about a month: 500 mL → up to 60 h/week at
   90 s spray / 110 s pause (200 mL → 50 h at 110/90; 1 L → 65 h at 80/120).
-- Leave the **fan on**; it carries the mist out of the diffuser.
+- The diffuser's **Fan** switch runs its built-in blower, which spreads mist into the room
+  the diffuser sits in. Leave it **on** for standalone use; turn it **off** when the diffuser
+  feeds an HVAC duct, or the scent stays in the room where the unit is (an attic, a closet).
+- When HVAC-connected, the **HVAC blower** must be running while the diffuser sprays, or
+  the mist settles in the ductwork.
 
 The integration enforces the first two rules. The consumption rate only tells the diffuser how fast oil is used
 so it can estimate what's left. To calibrate it, note the oil level, let it run about
