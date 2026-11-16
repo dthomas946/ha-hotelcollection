@@ -28,6 +28,22 @@ Aroma360 2.0 models) likely speak the same protocol but are untested.
 | Device clock | sensor (diagnostic, off by default) | |
 | Scent | text | Kept in HA — the diffuser does not store the scent name |
 
+## Dashboard card
+
+The integration ships a read-only card and loads it automatically (no resource to add):
+
+```yaml
+type: custom:hotelcollection-card
+device: villa   # entity prefix: switch.villa_power, sensor.villa_oil_level, …
+name: Villa     # optional
+```
+
+It shows the five modes on a weekly 24-hour timeline with a marker for now, which mode
+is running (or the next one), the scent, oil level and hours of spraying left, plus
+power and fan buttons. Schedule editing will come in a later version.
+
+![Card](docs/images/card.png)
+
 ## Install
 
 1. Give the diffuser a fixed IP (DHCP reservation) in your router.
