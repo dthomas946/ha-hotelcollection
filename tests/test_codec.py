@@ -146,7 +146,23 @@ def test_oil_write_matches_frame_the_villa_accepted():
         codec.encode_oil(500, 100, 0)
 
 
-def test_days_left_push():
+def test_days_left_matches_device_estimates():
+    # the Villa pushed S 04 = 28 days at 470 mL / 4.3 mL/h and 27 at 4.4 (2026-11-16)
+    slots = codec.decode_schedule(parse(R06_FIVE)[0].payload)
+    assert codec.estimate_days_left(codec.OilInfo(500, 470, 4.3), slots) == 28
+    assert codec.estimate_days_left(codec.OilInfo(500, 470, 4.4), slots) == 27
     st = codec.DeviceState()
-    assert st.apply(parse(codec.encode(codec.TYPE_STATUS, codec.CMD_DAYS_LEFT, H("001c")))[0]) is True
-    assert st.days_left == 28
+    # a read of cmd 04 answers zero and must not count
+    st.apply(parse(codec.encode(codec.TYPE_READ, codec.CMD_DAYS_LEFT, H("0000")))[0])
+    assert st.device_days_left is None
+    st.apply(parse(codec.encode(codec.TYPE_STATUS, codec.CMD_DAYS_LEFT, H("001c")))[0])
+    assert st.device_days_left == 28
+
+
+def test_manual_limits_are_enforced():
+    import pytest
+    ok = dict(slot=1, days_mask=1, start="22:00", end="23:59", enabled=True, work_s=15, pause_s=300)
+    codec.encode_slot(codec.ScheduleSlot(**ok))
+    for bad in ({"work_s": 4}, {"pause_s": 301}, {"start": "22:00", "end": "04:00"}, {"end": "22:00"}):
+        with pytest.raises(ValueError):
+            codec.encode_slot(codec.ScheduleSlot(**{**ok, **bad}))

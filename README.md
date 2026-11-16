@@ -84,7 +84,16 @@ If you use firewall groups/VLANs, allow Home Assistant → diffuser on TCP 8080.
 ### How much you smell
 
 Scent strength comes from the **spray** and **pause** seconds in each mode, plus how
-long the modes run. The consumption rate only tells the diffuser how fast oil is used
+long the modes run. From the ScentArea-family manual (DaVinci360 2.0):
+
+- Spray and pause each range **5–300 s**; use at least **15 s** of spray so the diffuser can
+  draw and atomize the oil.
+- A mode **cannot run past midnight** — end at 23:59 and start another mode at 00:00.
+- Suggested ceilings for a bottle to last about a month: 500 mL → up to 60 h/week at
+  90 s spray / 110 s pause (200 mL → 50 h at 110/90; 1 L → 65 h at 80/120).
+- Leave the **fan on**; it carries the mist out of the diffuser.
+
+The integration enforces the first two rules. The consumption rate only tells the diffuser how fast oil is used
 so it can estimate what's left. To calibrate it, note the oil level, let it run about
 10 days, measure the bottle, then adjust the rate until *Oil remaining* matches.
 

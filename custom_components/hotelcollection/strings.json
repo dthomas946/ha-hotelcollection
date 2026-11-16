@@ -105,15 +105,15 @@
         },
         "end": {
           "name": "End",
-          "description": "End time (23:59 for end of day)."
+          "description": "End time, after the start: a mode cannot run past midnight (use 23:59, and another mode from 00:00)."
         },
         "spray_seconds": {
           "name": "Spray time",
-          "description": "Seconds of spraying per cycle."
+          "description": "Seconds of spraying per cycle, 5-300 (15 or more recommended)."
         },
         "pause_seconds": {
           "name": "Pause time",
-          "description": "Seconds of pause between sprays."
+          "description": "Seconds of pause between sprays, 5-300."
         }
       }
     }

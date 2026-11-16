@@ -14,7 +14,6 @@ from .client import HotelCollectionClient, HotelCollectionError
 from .codec import (
     ALL_SLOTS,
     CMD_CLOCK,
-    CMD_DAYS_LEFT,
     CMD_FAN,
     CMD_LOCK,
     CMD_NAME,
@@ -32,7 +31,7 @@ from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-POLL_CMDS = (CMD_POWER, CMD_FAN, CMD_LOCK, CMD_OIL, CMD_DAYS_LEFT, CMD_CLOCK)
+POLL_CMDS = (CMD_POWER, CMD_FAN, CMD_LOCK, CMD_OIL, CMD_CLOCK)
 
 
 class HotelCollectionCoordinator(DataUpdateCoordinator[DeviceState]):
@@ -126,7 +125,6 @@ class HotelCollectionCoordinator(DataUpdateCoordinator[DeviceState]):
         try:
             await self.client.write_payload(CMD_OIL, payload)
             await self.client.read(CMD_OIL)
-            await self.client.read(CMD_DAYS_LEFT)
         except HotelCollectionError as err:
             await self.client.close()
             raise HomeAssistantError(f"Diffuser did not accept the oil settings: {err}") from err

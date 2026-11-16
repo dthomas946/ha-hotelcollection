@@ -18,7 +18,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from . import HotelCollectionConfigEntry
-from .codec import DeviceState
+from .codec import DeviceState, spray_hours_per_day
 from .entity import HotelCollectionEntity
 
 
@@ -97,6 +97,10 @@ SENSORS = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:calendar-end",
         value_fn=lambda s: s.days_left,
+        attrs_fn=lambda s: {
+            "spray_hours_per_day": round(spray_hours_per_day(s.schedule), 2),
+            "device_estimate": s.device_days_left,
+        },
     ),
     HotelCollectionSensorDescription(
         key="schedule",

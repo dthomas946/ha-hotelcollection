@@ -212,10 +212,13 @@ class HotelCollectionCard extends HTMLElement {
     const e = this._edit;
     if (!e || this._saving) return;
     if (!e.days.length && e.enabled) { this._error = "Pick at least one day, or turn the mode off."; return this._render(); }
-    if (!(e.work_s >= 1 && e.work_s <= 3600 && e.pause_s >= 1 && e.pause_s <= 3600)) {
-      this._error = "Spray and pause must be 1–3600 seconds."; return this._render();
+    if (!(e.work_s >= 5 && e.work_s <= 300 && e.pause_s >= 5 && e.pause_s <= 300)) {
+      this._error = "Spray and pause must be 5–300 seconds."; return this._render();
     }
-    if (e.start === e.end) { this._error = "Start and end can't be the same time."; return this._render(); }
+    if (hcMinutes(e.end) <= hcMinutes(e.start)) {
+      this._error = "End must be after start — a mode can't run past midnight. Use 23:59 here and another mode from 00:00.";
+      return this._render();
+    }
     this._saving = true; this._error = null; this._render();
     try {
       await this._callSetMode({ mode: e.slot, enabled: e.enabled, days: e.days, start: e.start, end: e.end,
@@ -259,9 +262,11 @@ class HotelCollectionCard extends HTMLElement {
         <div class="fields">
           <label>Start<input type="time" id="e-start" value="${hcEsc(e.start)}"></label>
           <label>End<input type="time" id="e-end" value="${hcEsc(e.end)}"></label>
-          <label>Spray (s)<input type="number" id="e-work" min="1" max="3600" value="${e.work_s}"></label>
-          <label>Pause (s)<input type="number" id="e-pause" min="1" max="3600" value="${e.pause_s}"></label>
+          <label>Spray (s)<input type="number" id="e-work" min="5" max="300" value="${e.work_s}"></label>
+          <label>Pause (s)<input type="number" id="e-pause" min="5" max="300" value="${e.pause_s}"></label>
         </div>
+        <div class="hint">Spray and pause: 5–300 s; at least 15 s of spray lets the diffuser draw and atomize the oil.
+          ${e.work_s > 0 && e.work_s < 15 ? `<b>Under 15 s may give little or no mist.</b>` : ""}</div>
         ${this._error ? `<div class="err">${hcEsc(this._error)}</div>` : ""}
         <div class="eact">
           <button id="e-cancel" ${this._saving ? "disabled" : ""}>Cancel</button>
@@ -390,6 +395,7 @@ class HotelCollectionCard extends HTMLElement {
                         background: var(--card-background-color, transparent); color: var(--primary-text-color); color-scheme: light dark; }
         .eact { display:flex; justify-content:flex-end; gap:8px; }
         .err { color: var(--error-color, #db4437); font-size:.85rem; }
+        .hint { color: var(--secondary-text-color); font-size:.8rem; }
       </style>
       <ha-card>
         <div class="head">

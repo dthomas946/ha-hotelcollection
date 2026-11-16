@@ -17,7 +17,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
-from .codec import DAY_NAMES
+from .codec import DAY_NAMES, SPRAY_MAX_S, SPRAY_MIN_S
 from .const import DEFAULT_PORT, DOMAIN
 from .coordinator import HotelCollectionCoordinator
 
@@ -51,8 +51,8 @@ SET_MODE_SCHEMA = vol.Schema(
         vol.Optional("days"): vol.All(cv.ensure_list, [_day]),
         vol.Optional("start"): _hhmm,
         vol.Optional("end"): _hhmm,
-        vol.Optional("spray_seconds"): vol.All(vol.Coerce(int), vol.Range(min=1, max=3600)),
-        vol.Optional("pause_seconds"): vol.All(vol.Coerce(int), vol.Range(min=1, max=3600)),
+        vol.Optional("spray_seconds"): vol.All(vol.Coerce(int), vol.Range(min=SPRAY_MIN_S, max=SPRAY_MAX_S)),
+        vol.Optional("pause_seconds"): vol.All(vol.Coerce(int), vol.Range(min=SPRAY_MIN_S, max=SPRAY_MAX_S)),
     }
 )
 

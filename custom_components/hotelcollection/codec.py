@@ -39,6 +39,12 @@ CMD_SNAPSHOT = 0x0C
 
 DAY_NAMES = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
+# ScentArea-family manual (DaVinci360 2.0): spray/pause run 5-300 s, 15 s+ spray recommended,
+# and a mode cannot run past midnight.
+SPRAY_MIN_S = 5
+SPRAY_MAX_S = 300
+SPRAY_RECOMMENDED_MIN_S = 15
+
 
 def checksum(body: bytes) -> int:
     """XOR of all bytes in type + cmd + payload."""
@@ -242,8 +248,10 @@ def encode_slot(slot: ScheduleSlot) -> bytes:
             raise ValueError(f"time out of range: {slot.start}-{slot.end}")
     if not 1 <= slot.slot <= 5:
         raise ValueError("mode must be 1-5")
-    if not (0 < slot.work_s <= 0xFFFF and 0 < slot.pause_s <= 0xFFFF):
-        raise ValueError("spray and pause must be 1-65535 seconds")
+    if not (SPRAY_MIN_S <= slot.work_s <= SPRAY_MAX_S and SPRAY_MIN_S <= slot.pause_s <= SPRAY_MAX_S):
+        raise ValueError(f"spray and pause must be {SPRAY_MIN_S}-{SPRAY_MAX_S} seconds")
+    if (eh * 60 + em) <= (sh * 60 + sm):
+        raise ValueError("a mode can't run past midnight: end must be after start (split it across two modes)")
     return bytes(
         [slot.slot, slot.days_mask & 0x7F, sh, sm, eh, em, 1 if slot.enabled else 0]
     ) + slot.work_s.to_bytes(2, "big") + slot.pause_s.to_bytes(2, "big")
@@ -263,6 +271,29 @@ def decode_slot(payload: bytes) -> ScheduleSlot | None:
     return _slot_from(payload, False)
 
 
+def spray_hours_per_day(slots) -> float:
+    """Average hours of actual spraying per day over a week (spray / (spray + pause))."""
+    total_min = 0.0
+    for s in slots:
+        if not s.enabled or not s.days_mask or s.work_s + s.pause_s == 0:
+            continue
+        sh, sm = (int(x) for x in s.start.split(":"))
+        eh, em = (int(x) for x in s.end.split(":"))
+        minutes = ((eh * 60 + em) - (sh * 60 + sm)) % 1440
+        total_min += minutes * len(s.days) * s.work_s / (s.work_s + s.pause_s)
+    return total_min / 60 / 7
+
+
+def estimate_days_left(oil: "OilInfo | None", slots) -> int | None:
+    """Days until empty at the current schedule; matches the diffuser's own cmd 04 value."""
+    if oil is None or not oil.rate_ml_h:
+        return None
+    per_day = spray_hours_per_day(slots) * oil.rate_ml_h
+    if per_day <= 0:
+        return None
+    return int(oil.remaining_ml / per_day)
+
+
 @dataclass
 class DeviceState:
     name: str | None = None
@@ -270,10 +301,14 @@ class DeviceState:
     fan: bool | None = None
     lock: bool | None = None
     oil: OilInfo | None = None
-    days_left: int | None = None
+    device_days_left: int | None = None
     clock: datetime | None = None
     schedule: list[ScheduleSlot] = field(default_factory=list)
     raw: dict[int, bytes] = field(default_factory=dict)
+
+    @property
+    def days_left(self) -> int | None:
+        return estimate_days_left(self.oil, self.schedule)
 
     def apply(self, frame: Frame) -> bool:
         """Update state from a frame. Returns True if anything changed."""
@@ -282,7 +317,7 @@ class DeviceState:
         if frame.ftype not in (TYPE_READ, TYPE_STATUS):
             return False
         p = frame.payload
-        before = (self.name, self.power, self.fan, self.lock, self.oil, self.days_left, self.schedule)
+        before = (self.name, self.power, self.fan, self.lock, self.oil, self.device_days_left, self.schedule)
         self.raw[frame.cmd] = p
         if frame.cmd == CMD_NAME:
             self.name = decode_name(p)
@@ -295,8 +330,9 @@ class DeviceState:
             self.fan = bool(p[0])
         elif frame.cmd == CMD_LOCK and p:
             self.lock = bool(p[0])
-        elif frame.cmd == CMD_DAYS_LEFT and len(p) >= 2:
-            self.days_left = int.from_bytes(p[0:2], "big")
+        elif frame.cmd == CMD_DAYS_LEFT and len(p) >= 2 and frame.ftype == TYPE_STATUS:
+            # a read of cmd 04 answers 0; only pushes carry the real estimate
+            self.device_days_left = int.from_bytes(p[0:2], "big")
         elif frame.cmd == CMD_OIL:
             self.oil = decode_oil(p) or self.oil
         elif frame.cmd == CMD_SCHEDULE:
@@ -304,5 +340,5 @@ class DeviceState:
             merged = {s.slot: s for s in self.schedule}
             merged.update({s.slot: s for s in decode_schedule(p)})
             self.schedule = [merged[k] for k in sorted(merged)]
-        after = (self.name, self.power, self.fan, self.lock, self.oil, self.days_left, self.schedule)
+        after = (self.name, self.power, self.fan, self.lock, self.oil, self.device_days_left, self.schedule)
         return before != after
