@@ -1,9 +1,12 @@
 name: Release
 
-# Push a tag like v0.4.1 and GitHub creates the release HACS shows as the version.
+# When the version in manifest.json changes on main, create tag vX.Y.Z and a
+# GitHub release for it. HACS shows that release as the installed/latest version.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths: ["custom_components/hotelcollection/manifest.json"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -13,10 +16,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check manifest version matches the tag
+      - id: v
+        run: echo "version=$(python3 -c "import json;print(json.load(open('custom_components/hotelcollection/manifest.json'))['version'])")" >> "$GITHUB_OUTPUT"
+      - id: exists
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          v=$(python3 -c "import json;print(json.load(open('custom_components/hotelcollection/manifest.json'))['version'])")
-          [ "v$v" = "${GITHUB_REF_NAME}" ] || { echo "manifest says $v but tag is ${GITHUB_REF_NAME}"; exit 1; }
-      - uses: softprops/action-gh-release@v2
+          if gh release view "v${{ steps.v.outputs.version }}" >/dev/null 2>&1; then echo "skip=true" >> "$GITHUB_OUTPUT"; else echo "skip=false" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.exists.outputs.skip == 'false'
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.v.outputs.version }}
+          name: v${{ steps.v.outputs.version }}
+          target_commitish: ${{ github.sha }}
           generate_release_notes: true
