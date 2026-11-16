@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="body" x1="0" x2="1">
+      <stop offset="0" stop-color="#3a4250"/><stop offset="0.55" stop-color="#5b6575"/><stop offset="1" stop-color="#2c333e"/>
+    </linearGradient>
+    <linearGradient id="mist" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#7fd3d0" stop-opacity="0.95"/><stop offset="1" stop-color="#a98ee0" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+  <!-- mist plume -->
+  <g fill="none" stroke="url(#mist)" stroke-linecap="round" stroke-width="18">
+    <path d="M256 196 C 226 160, 286 132, 256 96 S 236 40, 262 18"/>
+    <path d="M226 200 C 196 170, 222 140, 196 110" stroke-width="13"/>
+    <path d="M286 200 C 316 170, 290 140, 318 108" stroke-width="13"/>
+  </g>
+  <!-- nozzle -->
+  <rect x="240" y="198" width="32" height="22" rx="6" fill="#2c333e"/>
+  <!-- cabinet -->
+  <rect x="166" y="216" width="180" height="270" rx="34" fill="url(#body)"/>
+  <rect x="166" y="216" width="180" height="40" rx="20" fill="#6c7686"/>
+  <!-- status light and level window -->
+  <circle cx="256" cy="300" r="10" fill="#7fd3d0"/>
+  <rect x="226" y="340" width="60" height="110" rx="14" fill="#232932"/>
+  <rect x="234" y="388" width="44" height="54" rx="9" fill="#a98ee0"/>
+</svg>
