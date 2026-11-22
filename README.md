@@ -127,6 +127,7 @@ The integration ships a card and loads it automatically (no resource to add):
 type: custom:hotelcollection-card
 device: villa   # entity prefix: switch.villa_power, sensor.villa_oil_level, …
 name: Villa     # optional
+fan: auto       # auto (greyed out while the HVAC pause is on) | show | locked | hidden
 ```
 
 It shows the five modes on a weekly 24-hour timeline with a marker for now, which mode

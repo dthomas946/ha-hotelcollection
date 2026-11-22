@@ -128,7 +128,12 @@ The integration includes a card. You don't need to add a resource:
 type: custom:hotelcollection-card
 device: villa        # your <name>
 name: Villa          # optional title
+fan: auto            # auto | show | locked | hidden
 ```
+
+`fan: auto` (the default) greys out the card's Fan button while the HVAC pause is
+on, so a duct-fed diffuser's fan can't be turned on by accident. `locked` always
+greys it out, and `hidden` removes it.
 
 The card shows a weekly schedule timeline, mode on/off switches with an editor,
 power, the HVAC-pause status, and the oil level with mL / fl oz, the 90 % max-fill

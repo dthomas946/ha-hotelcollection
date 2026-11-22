@@ -124,8 +124,14 @@ class HotelCollectionCard extends HTMLElement {
       schema: [
         { name: "device", required: true, selector: { text: {} } },
         { name: "name", selector: { text: {} } },
+        { name: "fan", selector: { select: { mode: "dropdown", options: [
+          { value: "auto", label: "Auto: locked while the HVAC pause is on" },
+          { value: "show", label: "Show" },
+          { value: "locked", label: "Locked (greyed out)" },
+          { value: "hidden", label: "Hidden" },
+        ] } } },
       ],
-      computeLabel: (s) => ({ device: "Device prefix (e.g. villa)", name: "Title" }[s.name]),
+      computeLabel: (s) => ({ device: "Device prefix (e.g. villa)", name: "Title", fan: "Fan button" }[s.name]),
     };
   }
 
@@ -294,6 +300,9 @@ class HotelCollectionCard extends HTMLElement {
     const pumpOn = power && power.state === "on";
     const on = scentSw ? scentSw.state === "on" : pumpOn;
     const fanOn = fan && fan.state === "on";
+    // fan button: auto (locked while the HVAC pause is on) | show | locked | hidden
+    const fanMode = this._config.fan || "auto";
+    const fanLocked = fanMode === "locked" || (fanMode === "auto" && gated);
     const level = parseFloat(this._st("sensor", "oil_level")?.state);
     const remaining = this._st("sensor", "oil_remaining")?.state;
     const bottle = this._st("sensor", "bottle_size")?.state;
@@ -426,7 +435,7 @@ class HotelCollectionCard extends HTMLElement {
             ${scent && scent !== "unknown" ? `<div class="scent" id="scent">${hcEsc(scent)}</div>` : ""}</div>
           <div class="btns">
             <button id="power" class="${on ? "on" : ""}" ${unavailable ? "disabled" : ""} title="${scentSw ? "Scent on/off (the HVAC pause follows this)" : "Power"}"><ha-icon icon="mdi:power"></ha-icon>${on ? "On" : "Off"}</button>
-            <button id="fan" class="${fanOn ? "on" : ""}" ${unavailable ? "disabled" : ""} title="Fan"><ha-icon icon="mdi:fan"></ha-icon>Fan</button>
+            ${fanMode === "hidden" ? "" : `<button id="fan" class="${fanOn ? "on" : ""}" ${unavailable || fanLocked ? "disabled" : ""} title="${fanLocked ? "Fan locked: keep it off while the diffuser feeds an HVAC duct (change in the card settings)" : "Fan"}"><ha-icon icon="${fanLocked ? "mdi:fan-off" : "mdi:fan"}"></ha-icon>Fan</button>`}
           </div>
         </div>
         <div class="status">${status}</div>
@@ -445,7 +454,7 @@ class HotelCollectionCard extends HTMLElement {
 
     const $ = (id) => this.shadowRoot.getElementById(id);
     $("power")?.addEventListener("click", () => this._toggle(scentSw ? "scent" : "power"));
-    $("fan")?.addEventListener("click", () => this._toggle("fan"));
+    if (!fanLocked) $("fan")?.addEventListener("click", () => this._toggle("fan"));
     $("oil")?.addEventListener("click", () => this._more("number", "oil_remaining_setting"));
     $("rate")?.addEventListener("click", (ev) => { ev.stopPropagation(); this._more("number", "consumption_rate_setting"); });
     $("scent")?.addEventListener("click", () => this._more("text", "scent"));
